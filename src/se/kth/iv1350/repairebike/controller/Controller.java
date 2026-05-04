@@ -12,7 +12,7 @@ import se.kth.iv1350.repairebike.model.RepairOrderState;
 import se.kth.iv1350.repairebike.model.RepairTask;
 
 /**
- * Coordinates calls between view, integration layer, and model.
+ * The Controller coordinates calls between the MVC layers view, integration and model.
  */
 public class Controller {
     private final CustomerRegistry customerRegistry;
@@ -21,7 +21,7 @@ public class Controller {
     private Customer currentCustomer;
 
     /**
-     * Creates a controller with required dependencies.
+     * Create a controller with required dependencies.
      *
      * @param customerRegistry The customer registry.
      * @param repairOrderRegistry The repair order registry.
