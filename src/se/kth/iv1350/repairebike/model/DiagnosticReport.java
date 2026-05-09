@@ -24,13 +24,4 @@ public class DiagnosticReport {
         return reportText;
     }
 
-    /**
-     * Returns a string representation of the diagnostic report.
-     *
-     * @return A diagnostic report string.
-     */
-    @Override
-    public String toString() {
-        return "DiagnosticReport{reportText='" + reportText + "'}";
-    }
 }

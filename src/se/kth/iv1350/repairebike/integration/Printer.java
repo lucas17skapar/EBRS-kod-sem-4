@@ -1,21 +1,19 @@
 package se.kth.iv1350.repairebike.integration;
 
-import se.kth.iv1350.repairebike.model.RepairOrder;
-
 /**
  * Prints repair orders.
  */
 public class Printer {
     /**
-     * Prints a complete repair order to standard output.
+     * Prints a formatted repair order to standard output.
      *
-     * @param repairOrder The repair order to print.
+     * @param printableRepairOrder The formatted repair order to print.
      */
-    public void printRepairOrder(RepairOrder repairOrder) {
-        if (repairOrder == null) {
+    public void printRepairOrder(String printableRepairOrder) {
+        if (printableRepairOrder == null) {
             System.out.println("No repair order available to print.");
             return;
         }
-        System.out.println(repairOrder.createPrintableStringRepresentation());
+        System.out.println(printableRepairOrder);
     }
 }

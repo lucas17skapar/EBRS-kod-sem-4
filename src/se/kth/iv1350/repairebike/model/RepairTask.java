@@ -36,13 +36,4 @@ public class RepairTask {
         return cost;
     }
 
-    /**
-     * Returns a string representation of the repair task.
-     *
-     * @return A repair task string.
-     */
-    @Override
-    public String toString() {
-        return "RepairTask{description='" + description + "', cost=" + cost + "}";
-    }
 }

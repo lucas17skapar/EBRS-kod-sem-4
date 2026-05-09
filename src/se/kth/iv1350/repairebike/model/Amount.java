@@ -70,13 +70,4 @@ public class Amount {
         return value.stripTrailingZeros().hashCode();
     }
 
-    /**
-     * Returns a string representation of the amount.
-     *
-     * @return An amount string.
-     */
-    @Override
-    public String toString() {
-        return value.stripTrailingZeros().toPlainString();
-    }
 }

@@ -1,23 +1,23 @@
-package se.kth.iv1350.repairebike.model;
+package se.kth.iv1350.repairebike.dto;
 
 /**
- * Represents a customer.
+ * Contains customer data that may be shown by the view.
  */
-public class Customer {
+public class CustomerDTO {
     private final String name;
     private final String phoneNumber;
     private final String email;
-    private final Bike bike;
+    private final BikeDTO bike;
 
     /**
-     * Creates a customer.
+     * Creates a new customer DTO.
      *
      * @param name The customer name.
-     * @param phoneNumber The phone number.
-     * @param email The email address.
+     * @param phoneNumber The customer phone number.
+     * @param email The customer email address.
      * @param bike The customer's bike.
      */
-    public Customer(String name, String phoneNumber, String email, Bike bike) {
+    public CustomerDTO(String name, String phoneNumber, String email, BikeDTO bike) {
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.email = email;
@@ -34,30 +34,29 @@ public class Customer {
     }
 
     /**
-     * Gets the phone number.
+     * Gets the customer phone number.
      *
-     * @return The phone number.
+     * @return The customer phone number.
      */
     public String getPhoneNumber() {
         return phoneNumber;
     }
 
     /**
-     * Gets the email address.
+     * Gets the customer email address.
      *
-     * @return The email address.
+     * @return The customer email address.
      */
     public String getEmail() {
         return email;
     }
 
     /**
-     * Gets the bike.
+     * Gets the customer's bike.
      *
-     * @return The bike.
+     * @return The customer's bike.
      */
-    public Bike getBike() {
+    public BikeDTO getBike() {
         return bike;
     }
-
 }

@@ -5,18 +5,15 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import se.kth.iv1350.repairebike.dto.CustomerDTO;
+import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
+import se.kth.iv1350.repairebike.dto.RepairTaskDTO;
 import se.kth.iv1350.repairebike.integration.CustomerRegistry;
 import se.kth.iv1350.repairebike.integration.Printer;
 import se.kth.iv1350.repairebike.integration.RepairOrderRegistry;
-import se.kth.iv1350.repairebike.model.Amount;
-import se.kth.iv1350.repairebike.model.Customer;
-import se.kth.iv1350.repairebike.model.RepairOrder;
-import se.kth.iv1350.repairebike.model.RepairOrderState;
-import se.kth.iv1350.repairebike.model.RepairTask;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
 
 class ControllerTest {
     private Controller controller;
@@ -32,7 +29,7 @@ class ControllerTest {
 
     @Test
     void findCustomerReturnsCorrectCustomerForKnownPhoneNumber() {
-        Customer result = controller.findCustomer("0701234567");
+        CustomerDTO result = controller.findCustomer("0701234567");
 
         assertNotNull(result);
         assertEquals("Sara Lind", result.getName());
@@ -41,14 +38,14 @@ class ControllerTest {
 
     @Test
     void findCustomerReturnsNullForUnknownPhoneNumber() {
-        Customer result = controller.findCustomer("0000000000");
+        CustomerDTO result = controller.findCustomer("0000000000");
 
         assertNull(result);
     }
 
     @Test
     void createRepairOrderReturnsNullWhenNoCustomerHasBeenSelected() {
-        RepairOrder result = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO result = controller.createRepairOrder("Battery drains quickly.");
 
         assertNull(result);
     }
@@ -57,11 +54,11 @@ class ControllerTest {
     void createRepairOrderCreatesAndRegistersRepairOrderWhenCustomerExists() {
         controller.findCustomer("0701234567");
 
-        RepairOrder createdRepairOrder = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO createdRepairOrder = controller.createRepairOrder("Battery drains quickly.");
 
         assertNotNull(createdRepairOrder);
-        RepairOrder registeredRepairOrder = controller.findRepairOrder(createdRepairOrder.getOrderId());
-        assertSame(createdRepairOrder, registeredRepairOrder);
+        RepairOrderDTO registeredRepairOrder = controller.findRepairOrder(createdRepairOrder.getOrderId());
+        assertNotNull(registeredRepairOrder);
         assertEquals(1, registeredRepairOrder.getOrderId());
         assertEquals("Battery drains quickly.", registeredRepairOrder.getProblemDescription());
     }
@@ -69,15 +66,15 @@ class ControllerTest {
     @Test
     void createRepairOrderCreatesUniqueRepairOrderIds() {
         controller.findCustomer("0701234567");
-        RepairOrder firstOrder = controller.createRepairOrder("First issue.");
-        RepairOrder secondOrder = controller.createRepairOrder("Second issue.");
+        RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
+        RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
 
         assertNotNull(firstOrder);
         assertNotNull(secondOrder);
-        RepairOrder firstResult = controller.findRepairOrder(firstOrder.getOrderId());
-        RepairOrder secondResult = controller.findRepairOrder(secondOrder.getOrderId());
-        assertSame(firstOrder, firstResult);
-        assertSame(secondOrder, secondResult);
+        RepairOrderDTO firstResult = controller.findRepairOrder(firstOrder.getOrderId());
+        RepairOrderDTO secondResult = controller.findRepairOrder(secondOrder.getOrderId());
+        assertEquals(firstOrder.getOrderId(), firstResult.getOrderId());
+        assertEquals(secondOrder.getOrderId(), secondResult.getOrderId());
         assertEquals(1, firstOrder.getOrderId());
         assertEquals(2, secondOrder.getOrderId());
     }
@@ -85,21 +82,21 @@ class ControllerTest {
     @Test
     void findRepairOrderReturnsOrderWithMatchingId() {
         controller.findCustomer("0701234567");
-        RepairOrder firstOrder = controller.createRepairOrder("First issue.");
-        RepairOrder secondOrder = controller.createRepairOrder("Second issue.");
+        RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
+        RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
 
-        RepairOrder result = controller.findRepairOrder(firstOrder.getOrderId());
+        RepairOrderDTO result = controller.findRepairOrder(firstOrder.getOrderId());
 
         assertNotNull(secondOrder);
-        assertSame(firstOrder, result);
+        assertEquals(firstOrder.getOrderId(), result.getOrderId());
     }
 
     @Test
     void addDiagnosticReportReturnsNullWhenNoRepairOrderMatchesId() {
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
 
-        RepairOrder result = controller.addDiagnosticReport(999, "Connector issue.", tasks);
+        RepairOrderDTO result = controller.addDiagnosticReport(999, "Connector issue.", tasks);
 
         assertNull(result);
     }
@@ -107,56 +104,56 @@ class ControllerTest {
     @Test
     void addDiagnosticReportUpdatesSpecifiedRepairOrderCorrectly() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
-        tasks.add(new RepairTask("Update firmware", new Amount(650.0)));
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
+        tasks.add(new RepairTaskDTO("Update firmware", 650.0));
 
-        RepairOrder updatedOrder = controller.addDiagnosticReport(
+        RepairOrderDTO updatedOrder = controller.addDiagnosticReport(
             createdOrder.getOrderId(),
             "Connector and firmware issues.",
             tasks
         );
 
         assertNotNull(updatedOrder);
-        assertEquals("Connector and firmware issues.", updatedOrder.getDiagnosticReport().getReportText());
+        assertEquals("Connector and firmware issues.", updatedOrder.getDiagnosticReportText());
         assertEquals(2, updatedOrder.getRepairTasks().size());
-        assertEquals(new Amount(1550.0), updatedOrder.calculateTotalCost());
-        assertEquals(RepairOrderState.NEWLY_CREATED, updatedOrder.getState());
-        assertSame(updatedOrder, controller.findRepairOrder(createdOrder.getOrderId()));
+        assertEquals(1550.0, updatedOrder.getTotalCost(), 0.001);
+        assertEquals("NEWLY_CREATED", updatedOrder.getState());
+        assertEquals(updatedOrder.getOrderId(), controller.findRepairOrder(createdOrder.getOrderId()).getOrderId());
     }
 
     @Test
     void addDiagnosticReportUpdatesSpecifiedRepairOrderInsteadOfLatestOrder() {
         controller.findCustomer("0701234567");
-        RepairOrder firstOrder = controller.createRepairOrder("First issue.");
-        RepairOrder secondOrder = controller.createRepairOrder("Second issue.");
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
+        RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
 
-        RepairOrder updatedOrder = controller.addDiagnosticReport(
+        RepairOrderDTO updatedOrder = controller.addDiagnosticReport(
             firstOrder.getOrderId(),
             "Connector issue.",
             tasks
         );
 
-        assertSame(firstOrder, updatedOrder);
-        assertEquals("Connector issue.", firstOrder.getDiagnosticReport().getReportText());
-        assertNull(secondOrder.getDiagnosticReport());
-        assertSame(secondOrder, controller.findRepairOrder(secondOrder.getOrderId()));
+        assertEquals(firstOrder.getOrderId(), updatedOrder.getOrderId());
+        assertEquals("Connector issue.", updatedOrder.getDiagnosticReportText());
+        assertNull(controller.findRepairOrder(secondOrder.getOrderId()).getDiagnosticReportText());
+        assertEquals(secondOrder.getOrderId(), controller.findRepairOrder(secondOrder.getOrderId()).getOrderId());
     }
 
     @Test
     void addDiagnosticReportStoresSpecifiedEstimatedCompletionDate() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
         LocalDate expectedCompletionDate = createdOrder.getCreatedDate().plusDays(5);
 
-        RepairOrder updatedOrder = controller.addDiagnosticReport(
+        RepairOrderDTO updatedOrder = controller.addDiagnosticReport(
             createdOrder.getOrderId(),
             "Connector issue.",
             tasks,
@@ -169,7 +166,7 @@ class ControllerTest {
 
     @Test
     void prepareRepairOrderForApprovalReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrder result = controller.prepareRepairOrderForApproval(999);
+        RepairOrderDTO result = controller.prepareRepairOrderForApproval(999);
 
         assertNull(result);
     }
@@ -177,22 +174,22 @@ class ControllerTest {
     @Test
     void prepareRepairOrderForApprovalChangesSpecifiedOrderStateWhenDiagnosticExists() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
         controller.addDiagnosticReport(createdOrder.getOrderId(), "Connector issue.", tasks);
 
-        RepairOrder preparedOrder = controller.prepareRepairOrderForApproval(createdOrder.getOrderId());
+        RepairOrderDTO preparedOrder = controller.prepareRepairOrderForApproval(createdOrder.getOrderId());
 
         assertNotNull(preparedOrder);
-        assertEquals(RepairOrderState.READY_FOR_APPROVAL, preparedOrder.getState());
-        assertSame(preparedOrder, controller.findRepairOrder(createdOrder.getOrderId()));
+        assertEquals("READY_FOR_APPROVAL", preparedOrder.getState());
+        assertEquals(preparedOrder.getOrderId(), controller.findRepairOrder(createdOrder.getOrderId()).getOrderId());
     }
 
     @Test
     void acceptRepairOrderReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrder result = controller.acceptRepairOrder(999);
+        RepairOrderDTO result = controller.acceptRepairOrder(999);
 
         assertNull(result);
     }
@@ -200,35 +197,33 @@ class ControllerTest {
     @Test
     void acceptRepairOrderChangesStateToAcceptedWhenSpecifiedRepairOrderIsReadyForApproval() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
         controller.addDiagnosticReport(createdOrder.getOrderId(), "Connector issue.", tasks);
         controller.prepareRepairOrderForApproval(createdOrder.getOrderId());
 
-        RepairOrder acceptedOrder = controller.acceptRepairOrder(createdOrder.getOrderId());
+        RepairOrderDTO acceptedOrder = controller.acceptRepairOrder(createdOrder.getOrderId());
 
         assertNotNull(acceptedOrder);
-        assertEquals(RepairOrderState.ACCEPTED, acceptedOrder.getState());
-        assertSame(acceptedOrder, controller.findRepairOrder(createdOrder.getOrderId()));
-        assertSame(acceptedOrder, printer.getPrintedRepairOrder());
+        assertEquals("ACCEPTED", acceptedOrder.getState());
+        assertEquals(acceptedOrder.getOrderId(), controller.findRepairOrder(createdOrder.getOrderId()).getOrderId());
     }
 
     @Test
     void acceptRepairOrderDoesNotAcceptOrderBeforeItIsReadyForApproval() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
-        RepairOrder acceptedOrder = controller.acceptRepairOrder(createdOrder.getOrderId());
+        RepairOrderDTO acceptedOrder = controller.acceptRepairOrder(createdOrder.getOrderId());
 
         assertNotNull(acceptedOrder);
-        assertEquals(RepairOrderState.NEWLY_CREATED, acceptedOrder.getState());
-        assertNull(printer.getPrintedRepairOrder());
+        assertEquals("NEWLY_CREATED", acceptedOrder.getState());
     }
 
     @Test
     void rejectRepairOrderReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrder result = controller.rejectRepairOrder(999);
+        RepairOrderDTO result = controller.rejectRepairOrder(999);
 
         assertNull(result);
     }
@@ -236,28 +231,35 @@ class ControllerTest {
     @Test
     void rejectRepairOrderChangesStateToRejectedWhenSpecifiedRepairOrderIsReadyForApproval() {
         controller.findCustomer("0701234567");
-        RepairOrder createdOrder = controller.createRepairOrder("Battery drains quickly.");
-        List<RepairTask> tasks = new ArrayList<>();
-        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
         controller.addDiagnosticReport(createdOrder.getOrderId(), "Connector issue.", tasks);
         controller.prepareRepairOrderForApproval(createdOrder.getOrderId());
 
-        RepairOrder rejectedOrder = controller.rejectRepairOrder(createdOrder.getOrderId());
+        RepairOrderDTO rejectedOrder = controller.rejectRepairOrder(createdOrder.getOrderId());
 
         assertNotNull(rejectedOrder);
-        assertEquals(RepairOrderState.REJECTED, rejectedOrder.getState());
-        assertSame(rejectedOrder, controller.findRepairOrder(createdOrder.getOrderId()));
+        assertEquals("REJECTED", rejectedOrder.getState());
+        assertEquals(rejectedOrder.getOrderId(), controller.findRepairOrder(createdOrder.getOrderId()).getOrderId());
+    }
+
+    @Test
+    void printRepairOrderPrintsSpecifiedText() {
+        controller.printRepairOrder("Repair Order");
+
+        assertEquals("Repair Order", printer.getPrintedRepairOrder());
     }
 
     private static class SilentPrinter extends Printer {
-        private RepairOrder printedRepairOrder;
+        private String printedRepairOrder;
 
         @Override
-        public void printRepairOrder(RepairOrder repairOrder) {
-            printedRepairOrder = repairOrder;
+        public void printRepairOrder(String printableRepairOrder) {
+            printedRepairOrder = printableRepairOrder;
         }
 
-        private RepairOrder getPrintedRepairOrder() {
+        private String getPrintedRepairOrder() {
             return printedRepairOrder;
         }
     }

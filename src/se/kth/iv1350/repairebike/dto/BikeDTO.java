@@ -1,21 +1,21 @@
-package se.kth.iv1350.repairebike.model;
+package se.kth.iv1350.repairebike.dto;
 
 /**
- * Represents an electric bike.
+ * Contains bike data that may be shown by the view.
  */
-public class Bike {
+public class BikeDTO {
     private final String brand;
     private final String model;
     private final String serialNumber;
 
     /**
-     * Creates a bike.
+     * Creates a new bike DTO.
      *
      * @param brand The bike brand.
      * @param model The bike model.
      * @param serialNumber The bike serial number.
      */
-    public Bike(String brand, String model, String serialNumber) {
+    public BikeDTO(String brand, String model, String serialNumber) {
         this.brand = brand;
         this.model = model;
         this.serialNumber = serialNumber;
@@ -40,12 +40,11 @@ public class Bike {
     }
 
     /**
-     * Gets the serial number.
+     * Gets the bike serial number.
      *
-     * @return The serial number.
+     * @return The bike serial number.
      */
     public String getSerialNumber() {
         return serialNumber;
     }
-
 }

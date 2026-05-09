@@ -195,45 +195,4 @@ public class RepairOrder {
         return state == RepairOrderState.ACCEPTED || state == RepairOrderState.REJECTED;
     }
 
-    /**
-     * Creates a printable string representation of this repair order.
-     *
-     * @return The printable string.
-     */
-    public String createPrintableStringRepresentation() {
-        String lineSeparator = System.lineSeparator();
-        StringBuilder builder = new StringBuilder();
-        builder.append("Repair Order").append(lineSeparator);
-        builder.append("Order ID: ").append(orderId).append(lineSeparator);
-        builder.append("State: ").append(state).append(lineSeparator);
-        builder.append("Created Date: ").append(createdDate).append(lineSeparator);
-        builder.append("Estimated Completion Date: ").append(estimatedCompletionDate).append(lineSeparator);
-        builder.append("Customer: ").append(customer).append(lineSeparator);
-        builder.append("Bike: ").append(bike).append(lineSeparator);
-        builder.append("Problem Description: ").append(problemDescription).append(lineSeparator);
-        builder.append("Diagnostic Report: ").append(diagnosticReport).append(lineSeparator);
-        builder.append("Repair Tasks: ").append(repairTasks).append(lineSeparator);
-        builder.append("Total Cost: ").append(calculateTotalCost()).append(lineSeparator);
-        return builder.toString();
-    }
-
-    /**
-     * Returns a string representation of the repair order.
-     *
-     * @return A repair order string.
-     */
-    @Override
-    public String toString() {
-        return "RepairOrder{"
-            + "orderId=" + orderId
-            + ", customer=" + customer
-            + ", bike=" + bike
-            + ", problemDescription='" + problemDescription + "'"
-            + ", createdDate=" + createdDate
-            + ", diagnosticReport=" + diagnosticReport
-            + ", repairTasks=" + repairTasks
-            + ", state=" + state
-            + ", estimatedCompletionDate=" + estimatedCompletionDate
-            + "}";
-    }
 }
