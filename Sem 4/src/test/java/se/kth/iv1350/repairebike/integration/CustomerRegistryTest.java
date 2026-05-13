@@ -5,18 +5,18 @@ import org.junit.jupiter.api.Test;
 import se.kth.iv1350.repairebike.model.Customer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CustomerRegistryTest {
     private CustomerRegistry customerRegistry;
 
     @BeforeEach
     void setUp() {
-        customerRegistry = new CustomerRegistry();
+        customerRegistry = CustomerRegistry.getInstance();
     }
 
     @Test
-    void findCustomerByPhoneNumberReturnsMatchingCustomer() {
+    void findCustomerByPhoneNumberReturnsMatchingCustomer() throws Exception {
         Customer result = customerRegistry.findCustomerByPhoneNumber("0701234567");
 
         assertNotNull(result);
@@ -25,9 +25,22 @@ class CustomerRegistryTest {
     }
 
     @Test
-    void findCustomerByPhoneNumberReturnsNullForMissingCustomer() {
-        Customer result = customerRegistry.findCustomerByPhoneNumber("0000000000");
+    void findCustomerByPhoneNumberThrowsExceptionForMissingCustomer() {
+        NoSuchCustomerException exception = assertThrows(
+            NoSuchCustomerException.class,
+            () -> customerRegistry.findCustomerByPhoneNumber("0000000000")
+        );
 
-        assertNull(result);
+        assertEquals("0000000000", exception.getSearchedPhoneNumber());
+    }
+
+    @Test
+    void findCustomerByPhoneNumberThrowsExceptionWhenDatabaseFails() {
+        DatabaseFailureException exception = assertThrows(
+            DatabaseFailureException.class,
+            () -> customerRegistry.findCustomerByPhoneNumber(CustomerRegistry.DATABASE_FAILURE_PHONE_NUMBER)
+        );
+
+        assertEquals(CustomerRegistry.DATABASE_FAILURE_PHONE_NUMBER, exception.getSearchedPhoneNumber());
     }
 }

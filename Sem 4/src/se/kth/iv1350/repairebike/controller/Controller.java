@@ -8,12 +8,16 @@ import se.kth.iv1350.repairebike.dto.CustomerDTO;
 import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
 import se.kth.iv1350.repairebike.dto.RepairTaskDTO;
 import se.kth.iv1350.repairebike.integration.CustomerRegistry;
+import se.kth.iv1350.repairebike.integration.DatabaseFailureException;
+import se.kth.iv1350.repairebike.integration.NoSuchCustomerException;
 import se.kth.iv1350.repairebike.integration.Printer;
 import se.kth.iv1350.repairebike.integration.RepairOrderRegistry;
 import se.kth.iv1350.repairebike.model.Amount;
 import se.kth.iv1350.repairebike.model.Bike;
 import se.kth.iv1350.repairebike.model.Customer;
 import se.kth.iv1350.repairebike.model.DiagnosticReport;
+import se.kth.iv1350.repairebike.model.DiscountStrategy;
+import se.kth.iv1350.repairebike.model.NoDiscountStrategy;
 import se.kth.iv1350.repairebike.model.RepairOrder;
 import se.kth.iv1350.repairebike.model.RepairTask;
 
@@ -24,6 +28,8 @@ public class Controller {
     private final CustomerRegistry customerRegistry;
     private final RepairOrderRegistry repairOrderRegistry;
     private final Printer printer;
+    private final DiscountStrategy discountStrategy;
+    private final List<RepairOrderObserver> repairOrderObservers = new ArrayList<>();
     private Customer currentCustomer;
 
     /**
@@ -38,20 +44,57 @@ public class Controller {
         RepairOrderRegistry repairOrderRegistry,
         Printer printer
     ) {
+        this(customerRegistry, repairOrderRegistry, printer, new NoDiscountStrategy());
+    }
+
+    /**
+     * Create a controller with required dependencies and a discount strategy.
+     *
+     * @param customerRegistry The customer registry.
+     * @param repairOrderRegistry The repair order registry.
+     * @param printer The printer.
+     * @param discountStrategy The strategy used to calculate repair order discounts.
+     */
+    public Controller(
+        CustomerRegistry customerRegistry,
+        RepairOrderRegistry repairOrderRegistry,
+        Printer printer,
+        DiscountStrategy discountStrategy
+    ) {
         this.customerRegistry = customerRegistry;
         this.repairOrderRegistry = repairOrderRegistry;
         this.printer = printer;
+        this.discountStrategy = discountStrategy;
+    }
+
+    /**
+     * Adds an observer that will be notified when repair orders are updated.
+     *
+     * @param repairOrderObserver The observer to notify.
+     */
+    public void addRepairOrderObserver(RepairOrderObserver repairOrderObserver) {
+        repairOrderObservers.add(repairOrderObserver);
     }
 
     /**
      * Finds a customer by phone number.
      *
      * @param phoneNumber The customer's phone number.
-     * @return The found customer data, or {@code null} if not found.
+     * @return The found customer data.
+     * @throws CustomerNotFoundException If no customer has the specified phone number.
+     * @throws OperationFailedException If the customer search can not be completed.
      */
-    public CustomerDTO findCustomer(String phoneNumber) {
-        currentCustomer = customerRegistry.findCustomerByPhoneNumber(phoneNumber);
-        return createCustomerDTO(currentCustomer);
+    public CustomerDTO findCustomer(String phoneNumber)
+        throws CustomerNotFoundException, OperationFailedException {
+        try {
+            Customer foundCustomer = customerRegistry.findCustomerByPhoneNumber(phoneNumber);
+            currentCustomer = foundCustomer;
+            return createCustomerDTO(foundCustomer);
+        } catch (NoSuchCustomerException exc) {
+            throw new CustomerNotFoundException(phoneNumber, exc);
+        } catch (DatabaseFailureException exc) {
+            throw new OperationFailedException("Could not search for customer.", exc);
+        }
     }
 
     /**
@@ -73,7 +116,9 @@ public class Controller {
             problemDescription
         );
         repairOrderRegistry.addRepairOrder(repairOrder);
-        return createRepairOrderDTO(repairOrder);
+        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
+        notifyRepairOrderObservers(repairOrderDTO);
+        return repairOrderDTO;
     }
 
     /**
@@ -152,8 +197,12 @@ public class Controller {
             return null;
         }
 
-        repairOrder.prepareRepairOrderForApproval();
-        return createRepairOrderDTO(repairOrder);
+        boolean repairOrderWasUpdated = repairOrder.prepareRepairOrderForApproval();
+        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
+        if (repairOrderWasUpdated) {
+            notifyRepairOrderObservers(repairOrderDTO);
+        }
+        return repairOrderDTO;
     }
 
     /**
@@ -168,8 +217,12 @@ public class Controller {
             return null;
         }
 
-        repairOrder.acceptRepairOrder();
-        return createRepairOrderDTO(repairOrder);
+        boolean repairOrderWasUpdated = repairOrder.acceptRepairOrder();
+        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
+        if (repairOrderWasUpdated) {
+            notifyRepairOrderObservers(repairOrderDTO);
+        }
+        return repairOrderDTO;
     }
 
     /**
@@ -184,8 +237,12 @@ public class Controller {
             return null;
         }
 
-        repairOrder.rejectRepairOrder();
-        return createRepairOrderDTO(repairOrder);
+        boolean repairOrderWasUpdated = repairOrder.rejectRepairOrder();
+        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
+        if (repairOrderWasUpdated) {
+            notifyRepairOrderObservers(repairOrderDTO);
+        }
+        return repairOrderDTO;
     }
 
     /**
@@ -204,12 +261,16 @@ public class Controller {
         LocalDate estimatedCompletionDate
     ) {
         DiagnosticReport diagnosticReport = new DiagnosticReport(reportText);
-        repairOrder.addDiagnosticReportAndProposedRepairTasks(
+        boolean repairOrderWasUpdated = repairOrder.addDiagnosticReportAndProposedRepairTasks(
             diagnosticReport,
             repairTasks,
             estimatedCompletionDate
         );
-        return createRepairOrderDTO(repairOrder);
+        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
+        if (repairOrderWasUpdated) {
+            notifyRepairOrderObservers(repairOrderDTO);
+        }
+        return repairOrderDTO;
     }
 
     private List<RepairTask> createRepairTasks(List<RepairTaskDTO> repairTaskDTOs) {
@@ -245,7 +306,7 @@ public class Controller {
             createRepairTaskDTOs(repairOrder.getRepairTasks()),
             repairOrder.getState().name(),
             repairOrder.getEstimatedCompletionDate(),
-            repairOrder.calculateTotalCost().getValue()
+            repairOrder.calculateTotalCost(discountStrategy).getValue()
         );
     }
 
@@ -285,6 +346,12 @@ public class Controller {
             );
         }
         return repairTaskDTOs;
+    }
+
+    private void notifyRepairOrderObservers(RepairOrderDTO repairOrderDTO) {
+        for (RepairOrderObserver repairOrderObserver : repairOrderObservers) {
+            repairOrderObserver.repairOrderUpdated(repairOrderDTO);
+        }
     }
 
 }

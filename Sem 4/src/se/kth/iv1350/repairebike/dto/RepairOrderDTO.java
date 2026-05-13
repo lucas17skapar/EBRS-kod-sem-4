@@ -146,4 +146,80 @@ public class RepairOrderDTO {
     public double getTotalCost() {
         return totalCost;
     }
+
+    /**
+     * Gets a string representation of this repair order.
+     *
+     * @return A string representation of this repair order.
+     */
+    @Override
+    public String toString() {
+        return "RepairOrder{"
+            + "orderId=" + orderId
+            + ", customer=" + formatCustomer(customer)
+            + ", bike=" + formatBike(bike)
+            + ", problemDescription='" + problemDescription + "'"
+            + ", createdDate=" + createdDate
+            + ", diagnosticReportText='" + formatNullable(diagnosticReportText) + "'"
+            + ", repairTasks=" + formatRepairTasks(repairTasks)
+            + ", state=" + state
+            + ", estimatedCompletionDate=" + estimatedCompletionDate
+            + ", totalCost=" + formatAmount(totalCost)
+            + "}";
+    }
+
+    private static String formatCustomer(CustomerDTO customer) {
+        if (customer == null) {
+            return "none";
+        }
+
+        return "Customer{"
+            + "name='" + customer.getName() + "'"
+            + ", phoneNumber='" + customer.getPhoneNumber() + "'"
+            + ", email='" + customer.getEmail() + "'"
+            + ", bike=" + formatBike(customer.getBike())
+            + "}";
+    }
+
+    private static String formatBike(BikeDTO bike) {
+        if (bike == null) {
+            return "none";
+        }
+
+        return "Bike{"
+            + "brand='" + bike.getBrand() + "'"
+            + ", model='" + bike.getModel() + "'"
+            + ", serialNumber='" + bike.getSerialNumber() + "'"
+            + "}";
+    }
+
+    private static String formatRepairTasks(List<RepairTaskDTO> repairTasks) {
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < repairTasks.size(); i++) {
+            RepairTaskDTO repairTask = repairTasks.get(i);
+            builder.append("RepairTask{")
+                .append("description='").append(repairTask.getDescription()).append("'")
+                .append(", cost=").append(formatAmount(repairTask.getCost()))
+                .append("}");
+            if (i < repairTasks.size() - 1) {
+                builder.append(", ");
+            }
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    private static String formatAmount(double amount) {
+        if (amount == Math.rint(amount)) {
+            return Long.toString(Math.round(amount));
+        }
+        return Double.toString(amount);
+    }
+
+    private static String formatNullable(String text) {
+        if (text == null) {
+            return "none";
+        }
+        return text;
+    }
 }

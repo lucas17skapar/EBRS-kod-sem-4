@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import se.kth.iv1350.repairebike.controller.Controller;
+import se.kth.iv1350.repairebike.controller.CustomerNotFoundException;
+import se.kth.iv1350.repairebike.controller.OperationFailedException;
 import se.kth.iv1350.repairebike.dto.BikeDTO;
 import se.kth.iv1350.repairebike.dto.CustomerDTO;
 import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
@@ -14,6 +16,8 @@ import se.kth.iv1350.repairebike.dto.RepairTaskDTO;
  */
 public class View {
     private final Controller controller;
+    private final ErrorMessageHandler errorMessageHandler = new ErrorMessageHandler();
+    private final ErrorLogger errorLogger = new ErrorLogger();
 
     /**
      * Creates a new view.
@@ -28,7 +32,13 @@ public class View {
      * Runs the seminar 3 basic flow.
      */
     public void sampleExecution() {
-        CustomerDTO customer = controller.findCustomer("0701234567");
+        CustomerDTO missingCustomer = findCustomer("0000000000");
+        System.out.println("0a. Missing customer search result: " + formatCustomer(missingCustomer));
+
+        CustomerDTO failedSearch = findCustomer("9999999999");
+        System.out.println("0b. Database failure search result: " + formatCustomer(failedSearch));
+
+        CustomerDTO customer = findCustomer("0701234567");
         System.out.println("1. Found customer: " + formatCustomer(customer));
 
         if (customer != null) {
@@ -80,104 +90,43 @@ public class View {
         System.out.println("10. Accepted repair order: " + formatRepairOrder(acceptedOrder));
     }
 
-    private String formatRepairOrder(RepairOrderDTO repairOrder) {
-        if (repairOrder == null) {
-            return "none";
+    private CustomerDTO findCustomer(String phoneNumber) {
+        try {
+            return controller.findCustomer(phoneNumber);
+        } catch (CustomerNotFoundException exc) {
+            errorMessageHandler.showErrorMessage(
+                "No customer was found with phone number " + exc.getSearchedPhoneNumber() + "."
+            );
+        } catch (OperationFailedException exc) {
+            errorMessageHandler.showErrorMessage(
+                "The customer search could not be completed. Please try again later."
+            );
+            errorLogger.logException(exc);
         }
+        return null;
+    }
 
-        return "RepairOrder{"
-            + "orderId=" + repairOrder.getOrderId()
-            + ", customer=" + formatCustomer(repairOrder.getCustomer())
-            + ", bike=" + formatBike(repairOrder.getBike())
-            + ", problemDescription='" + repairOrder.getProblemDescription() + "'"
-            + ", createdDate=" + repairOrder.getCreatedDate()
-            + ", diagnosticReportText='" + formatNullable(repairOrder.getDiagnosticReportText()) + "'"
-            + ", repairTasks=" + formatRepairTasks(repairOrder.getRepairTasks())
-            + ", state=" + repairOrder.getState()
-            + ", estimatedCompletionDate=" + repairOrder.getEstimatedCompletionDate()
-            + ", totalCost=" + formatAmount(repairOrder.getTotalCost())
-            + "}";
+    private String formatRepairOrder(RepairOrderDTO repairOrder) {
+        return RepairOrderFormatter.formatRepairOrder(repairOrder);
     }
 
     private String formatRepairOrderReceipt(RepairOrderDTO repairOrder) {
-        String lineSeparator = System.lineSeparator();
-        StringBuilder builder = new StringBuilder();
-        builder.append("Repair Order").append(lineSeparator);
-        builder.append("Order ID: ").append(repairOrder.getOrderId()).append(lineSeparator);
-        builder.append("State: ").append(repairOrder.getState()).append(lineSeparator);
-        builder.append("Created Date: ").append(repairOrder.getCreatedDate()).append(lineSeparator);
-        builder.append("Estimated Completion Date: ")
-            .append(repairOrder.getEstimatedCompletionDate())
-            .append(lineSeparator);
-        builder.append("Customer: ").append(formatCustomer(repairOrder.getCustomer())).append(lineSeparator);
-        builder.append("Bike: ").append(formatBike(repairOrder.getBike())).append(lineSeparator);
-        builder.append("Problem Description: ")
-            .append(repairOrder.getProblemDescription())
-            .append(lineSeparator);
-        builder.append("Diagnostic Report: ")
-            .append(formatNullable(repairOrder.getDiagnosticReportText()))
-            .append(lineSeparator);
-        builder.append("Repair Tasks: ")
-            .append(formatRepairTasks(repairOrder.getRepairTasks()))
-            .append(lineSeparator);
-        builder.append("Total Cost: ")
-            .append(formatAmount(repairOrder.getTotalCost()))
-            .append(lineSeparator);
-        return builder.toString();
+        return RepairOrderFormatter.formatRepairOrderReceipt(repairOrder);
     }
 
     private String formatCustomer(CustomerDTO customer) {
-        if (customer == null) {
-            return "none";
-        }
-
-        return "Customer{"
-            + "name='" + customer.getName() + "'"
-            + ", phoneNumber='" + customer.getPhoneNumber() + "'"
-            + ", email='" + customer.getEmail() + "'"
-            + ", bike=" + formatBike(customer.getBike())
-            + "}";
+        return RepairOrderFormatter.formatCustomer(customer);
     }
 
     private String formatBike(BikeDTO bike) {
-        if (bike == null) {
-            return "none";
-        }
-
-        return "Bike{"
-            + "brand='" + bike.getBrand() + "'"
-            + ", model='" + bike.getModel() + "'"
-            + ", serialNumber='" + bike.getSerialNumber() + "'"
-            + "}";
+        return RepairOrderFormatter.formatBike(bike);
     }
 
     private String formatRepairTasks(List<RepairTaskDTO> repairTasks) {
-        StringBuilder builder = new StringBuilder("[");
-        for (int i = 0; i < repairTasks.size(); i++) {
-            RepairTaskDTO repairTask = repairTasks.get(i);
-            builder.append("RepairTask{")
-                .append("description='").append(repairTask.getDescription()).append("'")
-                .append(", cost=").append(formatAmount(repairTask.getCost()))
-                .append("}");
-            if (i < repairTasks.size() - 1) {
-                builder.append(", ");
-            }
-        }
-        builder.append("]");
-        return builder.toString();
+        return RepairOrderFormatter.formatRepairTasks(repairTasks);
     }
 
     private String formatAmount(double amount) {
-        if (amount == Math.rint(amount)) {
-            return Long.toString(Math.round(amount));
-        }
-        return Double.toString(amount);
-    }
-
-    private String formatNullable(String text) {
-        if (text == null) {
-            return "none";
-        }
-        return text;
+        return RepairOrderFormatter.formatAmount(amount);
     }
 }

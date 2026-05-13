@@ -9,12 +9,25 @@ import se.kth.iv1350.repairebike.model.Customer;
  * Stores customer data in memory.
  */
 public class CustomerRegistry {
+    /**
+     * Searching for this phone number simulates a database failure.
+     */
+    public static final String DATABASE_FAILURE_PHONE_NUMBER = "9999999999";
+
+    private static final CustomerRegistry INSTANCE = new CustomerRegistry();
+
     private final List<Customer> customers = new ArrayList<>();
 
     /**
-     * Creates a customer registry with hard-coded customers.
+     * Gets the only customer registry instance.
+     *
+     * @return The customer registry instance.
      */
-    public CustomerRegistry() {
+    public static CustomerRegistry getInstance() {
+        return INSTANCE;
+    }
+
+    private CustomerRegistry() {
         customers.add(
             new Customer(
                 "Sara Lind",
@@ -37,14 +50,21 @@ public class CustomerRegistry {
      * Finds a customer by phone number.
      *
      * @param phoneNumber The phone number to search for.
-     * @return The matching customer, or {@code null} if no match is found.
+     * @return The matching customer.
+     * @throws NoSuchCustomerException If no customer has the specified phone number.
+     * @throws DatabaseFailureException If the customer database can not be reached.
      */
-    public Customer findCustomerByPhoneNumber(String phoneNumber) {
+    public Customer findCustomerByPhoneNumber(String phoneNumber)
+        throws NoSuchCustomerException, DatabaseFailureException {
+        if (DATABASE_FAILURE_PHONE_NUMBER.equals(phoneNumber)) {
+            throw new DatabaseFailureException(phoneNumber);
+        }
+
         for (Customer customer : customers) {
             if (customer.getPhoneNumber().equals(phoneNumber)) {
                 return customer;
             }
         }
-        return null;
+        throw new NoSuchCustomerException(phoneNumber);
     }
 }

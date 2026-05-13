@@ -9,11 +9,14 @@ import se.kth.iv1350.repairebike.dto.CustomerDTO;
 import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
 import se.kth.iv1350.repairebike.dto.RepairTaskDTO;
 import se.kth.iv1350.repairebike.integration.CustomerRegistry;
+import se.kth.iv1350.repairebike.integration.DatabaseFailureException;
 import se.kth.iv1350.repairebike.integration.Printer;
 import se.kth.iv1350.repairebike.integration.RepairOrderRegistry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ControllerTest {
     private Controller controller;
@@ -21,14 +24,14 @@ class ControllerTest {
 
     @BeforeEach
     void setUp() {
-        CustomerRegistry customerRegistry = new CustomerRegistry();
+        CustomerRegistry customerRegistry = CustomerRegistry.getInstance();
         RepairOrderRegistry repairOrderRegistry = new RepairOrderRegistry();
         printer = new SilentPrinter();
         controller = new Controller(customerRegistry, repairOrderRegistry, printer);
     }
 
     @Test
-    void findCustomerReturnsCorrectCustomerForKnownPhoneNumber() {
+    void findCustomerReturnsCorrectCustomerForKnownPhoneNumber() throws Exception {
         CustomerDTO result = controller.findCustomer("0701234567");
 
         assertNotNull(result);
@@ -37,10 +40,48 @@ class ControllerTest {
     }
 
     @Test
-    void findCustomerReturnsNullForUnknownPhoneNumber() {
-        CustomerDTO result = controller.findCustomer("0000000000");
+    void findCustomerThrowsExceptionForUnknownPhoneNumber() {
+        CustomerNotFoundException exception = assertThrows(
+            CustomerNotFoundException.class,
+            () -> controller.findCustomer("0000000000")
+        );
 
-        assertNull(result);
+        assertEquals("0000000000", exception.getSearchedPhoneNumber());
+    }
+
+    @Test
+    void findCustomerThrowsOperationFailedExceptionWhenDatabaseFails() {
+        OperationFailedException exception = assertThrows(
+            OperationFailedException.class,
+            () -> controller.findCustomer(CustomerRegistry.DATABASE_FAILURE_PHONE_NUMBER)
+        );
+
+        assertTrue(exception.getCause() instanceof DatabaseFailureException);
+    }
+
+    @Test
+    void missingCustomerSearchDoesNotChangeSelectedCustomer() throws Exception {
+        controller.findCustomer("0701234567");
+
+        assertThrows(CustomerNotFoundException.class, () -> controller.findCustomer("0000000000"));
+        RepairOrderDTO createdRepairOrder = controller.createRepairOrder("Battery drains quickly.");
+
+        assertNotNull(createdRepairOrder);
+        assertEquals("Sara Lind", createdRepairOrder.getCustomer().getName());
+    }
+
+    @Test
+    void failedCustomerSearchDoesNotChangeSelectedCustomer() throws Exception {
+        controller.findCustomer("0701234567");
+
+        assertThrows(
+            OperationFailedException.class,
+            () -> controller.findCustomer(CustomerRegistry.DATABASE_FAILURE_PHONE_NUMBER)
+        );
+        RepairOrderDTO createdRepairOrder = controller.createRepairOrder("Battery drains quickly.");
+
+        assertNotNull(createdRepairOrder);
+        assertEquals("Sara Lind", createdRepairOrder.getCustomer().getName());
     }
 
     @Test
@@ -51,7 +92,7 @@ class ControllerTest {
     }
 
     @Test
-    void createRepairOrderCreatesAndRegistersRepairOrderWhenCustomerExists() {
+    void createRepairOrderCreatesAndRegistersRepairOrderWhenCustomerExists() throws Exception {
         controller.findCustomer("0701234567");
 
         RepairOrderDTO createdRepairOrder = controller.createRepairOrder("Battery drains quickly.");
@@ -64,7 +105,7 @@ class ControllerTest {
     }
 
     @Test
-    void createRepairOrderCreatesUniqueRepairOrderIds() {
+    void createRepairOrderCreatesUniqueRepairOrderIds() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
         RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
@@ -80,7 +121,7 @@ class ControllerTest {
     }
 
     @Test
-    void findRepairOrderReturnsOrderWithMatchingId() {
+    void findRepairOrderReturnsOrderWithMatchingId() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
         RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
@@ -102,7 +143,7 @@ class ControllerTest {
     }
 
     @Test
-    void addDiagnosticReportUpdatesSpecifiedRepairOrderCorrectly() {
+    void addDiagnosticReportUpdatesSpecifiedRepairOrderCorrectly() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
@@ -125,7 +166,7 @@ class ControllerTest {
     }
 
     @Test
-    void addDiagnosticReportUpdatesSpecifiedRepairOrderInsteadOfLatestOrder() {
+    void addDiagnosticReportUpdatesSpecifiedRepairOrderInsteadOfLatestOrder() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO firstOrder = controller.createRepairOrder("First issue.");
         RepairOrderDTO secondOrder = controller.createRepairOrder("Second issue.");
@@ -145,7 +186,7 @@ class ControllerTest {
     }
 
     @Test
-    void addDiagnosticReportStoresSpecifiedEstimatedCompletionDate() {
+    void addDiagnosticReportStoresSpecifiedEstimatedCompletionDate() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
@@ -172,7 +213,7 @@ class ControllerTest {
     }
 
     @Test
-    void prepareRepairOrderForApprovalChangesSpecifiedOrderStateWhenDiagnosticExists() {
+    void prepareRepairOrderForApprovalChangesSpecifiedOrderStateWhenDiagnosticExists() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
@@ -195,7 +236,7 @@ class ControllerTest {
     }
 
     @Test
-    void acceptRepairOrderChangesStateToAcceptedWhenSpecifiedRepairOrderIsReadyForApproval() {
+    void acceptRepairOrderChangesStateToAcceptedWhenSpecifiedRepairOrderIsReadyForApproval() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
         List<RepairTaskDTO> tasks = new ArrayList<>();
@@ -211,7 +252,7 @@ class ControllerTest {
     }
 
     @Test
-    void acceptRepairOrderDoesNotAcceptOrderBeforeItIsReadyForApproval() {
+    void acceptRepairOrderDoesNotAcceptOrderBeforeItIsReadyForApproval() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
@@ -229,7 +270,7 @@ class ControllerTest {
     }
 
     @Test
-    void rejectRepairOrderChangesStateToRejectedWhenSpecifiedRepairOrderIsReadyForApproval() {
+    void rejectRepairOrderChangesStateToRejectedWhenSpecifiedRepairOrderIsReadyForApproval() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
         List<RepairTaskDTO> tasks = new ArrayList<>();
@@ -251,6 +292,22 @@ class ControllerTest {
         assertEquals("Repair Order", printer.getPrintedRepairOrder());
     }
 
+    @Test
+    void observerIsNotifiedWhenRepairOrderIsUpdated() throws Exception {
+        RecordingRepairOrderObserver observer = new RecordingRepairOrderObserver();
+        controller.addRepairOrderObserver(observer);
+        controller.findCustomer("0701234567");
+
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
+        List<RepairTaskDTO> tasks = new ArrayList<>();
+        tasks.add(new RepairTaskDTO("Replace connector", 900.0));
+        controller.addDiagnosticReport(createdOrder.getOrderId(), "Connector issue.", tasks);
+
+        assertEquals(2, observer.getUpdatedRepairOrders().size());
+        assertEquals(createdOrder.getOrderId(), observer.getUpdatedRepairOrders().get(0).getOrderId());
+        assertEquals("Connector issue.", observer.getUpdatedRepairOrders().get(1).getDiagnosticReportText());
+    }
+
     private static class SilentPrinter extends Printer {
         private String printedRepairOrder;
 
@@ -261,6 +318,19 @@ class ControllerTest {
 
         private String getPrintedRepairOrder() {
             return printedRepairOrder;
+        }
+    }
+
+    private static class RecordingRepairOrderObserver implements RepairOrderObserver {
+        private final List<RepairOrderDTO> updatedRepairOrders = new ArrayList<>();
+
+        @Override
+        public void repairOrderUpdated(RepairOrderDTO repairOrder) {
+            updatedRepairOrders.add(repairOrder);
+        }
+
+        private List<RepairOrderDTO> getUpdatedRepairOrders() {
+            return updatedRepairOrders;
         }
     }
 }

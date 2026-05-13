@@ -4,6 +4,9 @@ import se.kth.iv1350.repairebike.controller.Controller;
 import se.kth.iv1350.repairebike.integration.CustomerRegistry;
 import se.kth.iv1350.repairebike.integration.Printer;
 import se.kth.iv1350.repairebike.integration.RepairOrderRegistry;
+import se.kth.iv1350.repairebike.model.WarrantyDiscountStrategy;
+import se.kth.iv1350.repairebike.view.RepairOrderLogger;
+import se.kth.iv1350.repairebike.view.RepairOrderView;
 import se.kth.iv1350.repairebike.view.View;
 
 /**
@@ -16,11 +19,18 @@ public class Main {
      * @param args The program arguments.
      */
     public static void main(String[] args) {
-        CustomerRegistry customerRegistry = new CustomerRegistry();
+        CustomerRegistry customerRegistry = CustomerRegistry.getInstance();
         RepairOrderRegistry repairOrderRegistry = new RepairOrderRegistry();
         Printer printer = new Printer();
 
-        Controller controller = new Controller(customerRegistry, repairOrderRegistry, printer);
+        Controller controller = new Controller(
+            customerRegistry,
+            repairOrderRegistry,
+            printer,
+            new WarrantyDiscountStrategy()
+        );
+        controller.addRepairOrderObserver(new RepairOrderView());
+        controller.addRepairOrderObserver(new RepairOrderLogger());
         View view = new View(controller);
         view.sampleExecution();
     }

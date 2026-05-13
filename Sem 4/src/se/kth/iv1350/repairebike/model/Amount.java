@@ -37,6 +37,26 @@ public class Amount {
     }
 
     /**
+     * Subtracts another amount from this amount.
+     *
+     * @param other The amount to subtract.
+     * @return The difference between both amounts.
+     */
+    public Amount subtract(Amount other) {
+        return new Amount(value.subtract(other.value));
+    }
+
+    /**
+     * Multiplies this amount by the specified factor.
+     *
+     * @param factor The factor to multiply by.
+     * @return The multiplied amount.
+     */
+    public Amount multiply(double factor) {
+        return new Amount(value.multiply(BigDecimal.valueOf(factor)));
+    }
+
+    /**
      * Gets the amount value.
      *
      * @return The amount as a double.

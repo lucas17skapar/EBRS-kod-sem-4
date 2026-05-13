@@ -16,6 +16,25 @@ class AmountTest {
     }
 
     @Test
+    void subtractReturnsDifferenceBetweenTwoAmounts() {
+        Amount firstAmount = new Amount(900.50);
+        Amount secondAmount = new Amount(400.25);
+
+        Amount result = firstAmount.subtract(secondAmount);
+
+        assertEquals(new Amount(500.25), result);
+    }
+
+    @Test
+    void multiplyReturnsProductOfAmountAndFactor() {
+        Amount amount = new Amount(1550.0);
+
+        Amount result = amount.multiply(0.10);
+
+        assertEquals(new Amount(155.0), result);
+    }
+
+    @Test
     void equalsIgnoresInsignificantTrailingZeros() {
         Amount firstAmount = new Amount(900.0);
         Amount secondAmount = new Amount(900.00);

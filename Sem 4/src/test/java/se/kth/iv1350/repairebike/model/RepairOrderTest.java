@@ -148,6 +148,32 @@ class RepairOrderTest {
     }
 
     @Test
+    void calculateTotalCostWithNoDiscountStrategyReturnsSumOfRepairTaskCosts() {
+        DiagnosticReport diagnosticReport = new DiagnosticReport("Connector and firmware issues.");
+        List<RepairTask> tasks = new ArrayList<>();
+        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        tasks.add(new RepairTask("Update firmware", new Amount(650.0)));
+
+        repairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+        Amount totalCost = repairOrder.calculateTotalCost(new NoDiscountStrategy());
+
+        assertEquals(new Amount(1550.0), totalCost);
+    }
+
+    @Test
+    void calculateTotalCostWithWarrantyDiscountStrategySubtractsWarrantyDiscount() {
+        DiagnosticReport diagnosticReport = new DiagnosticReport("Connector and firmware issues.");
+        List<RepairTask> tasks = new ArrayList<>();
+        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        tasks.add(new RepairTask("Update firmware", new Amount(650.0)));
+
+        repairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+        Amount totalCost = repairOrder.calculateTotalCost(new WarrantyDiscountStrategy());
+
+        assertEquals(new Amount(1395.0), totalCost);
+    }
+
+    @Test
     void acceptRepairOrderDoesNotChangeStateBeforeOrderIsReadyForApproval() {
         repairOrder.acceptRepairOrder();
         RepairOrderState result = repairOrder.getState();

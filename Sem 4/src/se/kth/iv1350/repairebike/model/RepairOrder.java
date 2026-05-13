@@ -122,12 +122,13 @@ public class RepairOrder {
      *
      * @param diagnosticReport The diagnostic report.
      * @param repairTasks The proposed repair tasks.
+     * @return {@code true} if the repair order was updated, otherwise {@code false}.
      */
-    public void addDiagnosticReportAndProposedRepairTasks(
+    public boolean addDiagnosticReportAndProposedRepairTasks(
         DiagnosticReport diagnosticReport,
         List<RepairTask> repairTasks
     ) {
-        addDiagnosticReportAndProposedRepairTasks(diagnosticReport, repairTasks, createdDate.plusDays(3));
+        return addDiagnosticReportAndProposedRepairTasks(diagnosticReport, repairTasks, createdDate.plusDays(3));
     }
 
     /**
@@ -136,28 +137,34 @@ public class RepairOrder {
      * @param diagnosticReport The diagnostic report.
      * @param repairTasks The proposed repair tasks.
      * @param estimatedCompletionDate The estimated completion date.
+     * @return {@code true} if the repair order was updated, otherwise {@code false}.
      */
-    public void addDiagnosticReportAndProposedRepairTasks(
+    public boolean addDiagnosticReportAndProposedRepairTasks(
         DiagnosticReport diagnosticReport,
         List<RepairTask> repairTasks,
         LocalDate estimatedCompletionDate
     ) {
         if (isFinalState()) {
-            return;
+            return false;
         }
         this.diagnosticReport = diagnosticReport;
         this.repairTasks.clear();
         this.repairTasks.addAll(repairTasks);
         this.estimatedCompletionDate = estimatedCompletionDate;
+        return true;
     }
 
     /**
      * Prepares this repair order for customer approval.
+     *
+     * @return {@code true} if the repair order state changed, otherwise {@code false}.
      */
-    public void prepareRepairOrderForApproval() {
+    public boolean prepareRepairOrderForApproval() {
         if (diagnosticReport != null && !repairTasks.isEmpty() && !isFinalState()) {
             state = RepairOrderState.READY_FOR_APPROVAL;
+            return true;
         }
+        return false;
     }
 
     /**
@@ -166,29 +173,48 @@ public class RepairOrder {
      * @return The total cost.
      */
     public Amount calculateTotalCost() {
+        return calculateTotalCost(new NoDiscountStrategy());
+    }
+
+    /**
+     * Calculates the total cost of all proposed repair tasks after discount.
+     *
+     * @param discountStrategy The strategy used to calculate the discount.
+     * @return The total cost after discount.
+     */
+    public Amount calculateTotalCost(DiscountStrategy discountStrategy) {
         Amount totalCost = new Amount(0.0);
         for (RepairTask repairTask : repairTasks) {
             totalCost = totalCost.add(repairTask.getCost());
         }
-        return totalCost;
+        Amount discount = discountStrategy.calculateDiscount(this, totalCost);
+        return totalCost.subtract(discount);
     }
 
     /**
      * Accepts the repair order.
+     *
+     * @return {@code true} if the repair order state changed, otherwise {@code false}.
      */
-    public void acceptRepairOrder() {
+    public boolean acceptRepairOrder() {
         if (state == RepairOrderState.READY_FOR_APPROVAL) {
             state = RepairOrderState.ACCEPTED;
+            return true;
         }
+        return false;
     }
 
     /**
      * Rejects the repair order.
+     *
+     * @return {@code true} if the repair order state changed, otherwise {@code false}.
      */
-    public void rejectRepairOrder() {
+    public boolean rejectRepairOrder() {
         if (state == RepairOrderState.READY_FOR_APPROVAL) {
             state = RepairOrderState.REJECTED;
+            return true;
         }
+        return false;
     }
 
     private boolean isFinalState() {
