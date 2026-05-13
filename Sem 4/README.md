@@ -3,6 +3,25 @@ Repair Electric Bike, Seminar 4
 
 This implementation extends the seminar 3 program with the seminar 4 requirements.
 
+Requirements:
+
+* Java 17 or newer.
+* Maven 3.9 or newer.
+
+Run the program:
+
+```sh
+cd "Sem 4"
+mvn clean compile exec:java
+```
+
+Run the tests:
+
+```sh
+cd "Sem 4"
+mvn test
+```
+
 Implemented seminar 4 requirements:
 
 * Checked exceptions are used for customer search errors.

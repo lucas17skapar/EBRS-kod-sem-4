@@ -1,0 +1,12 @@
+.DS_Store
+**/.DS_Store
+
+# Java build output
+*.class
+out/
+target/
+
+# Runtime logs produced by the sample program
+repair-error-log.txt
+repair-order-log.txt
+
