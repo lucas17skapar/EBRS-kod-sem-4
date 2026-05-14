@@ -22,6 +22,15 @@ cd "Sem 4"
 mvn test
 ```
 
+Seminar report:
+
+* [docs/report.md](docs/report.md)
+
+Runtime log files are created in `Sem 4/` when the sample program is executed:
+
+* `repair-error-log.txt` contains developer error reports for technical failures.
+* `repair-order-log.txt` contains observer updates for repair orders.
+
 Implemented seminar 4 requirements:
 
 * Checked exceptions are used for customer search errors.
@@ -30,10 +39,12 @@ Implemented seminar 4 requirements:
 * The hard-coded phone number `9999999999` simulates a customer database failure.
 * User-facing error messages are printed by `ErrorMessageHandler`.
 * Developer error reports are written to `repair-error-log.txt`.
+* `RepairOrder` is the observed object in the Observer pattern.
 * `RepairOrderObserver` is implemented by `RepairOrderView` and `RepairOrderLogger`.
 * Repair order updates are printed to `System.out` and written to `repair-order-log.txt`.
 * Singleton is used for `CustomerRegistry`.
 * Strategy is used for repair order discounts. `Main` uses `WarrantyDiscountStrategy`, while tests also cover `NoDiscountStrategy`.
+* Bike warranty is explicit domain data, not inferred from serial number format.
 
 Example output from `View.sampleExecution()`:
 

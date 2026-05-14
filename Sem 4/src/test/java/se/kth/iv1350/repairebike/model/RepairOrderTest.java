@@ -162,15 +162,59 @@ class RepairOrderTest {
 
     @Test
     void calculateTotalCostWithWarrantyDiscountStrategySubtractsWarrantyDiscount() {
+        Bike warrantyBike = new Bike("Crescent", "Elina", "SN-12345", LocalDate.now().plusDays(30));
+        Customer warrantyCustomer = new Customer("Sara Lind", "0701234567", "sara.lind@example.com", warrantyBike);
+        RepairOrder warrantyRepairOrder = new RepairOrder(
+            2,
+            warrantyCustomer,
+            warrantyBike,
+            "Battery drains quickly."
+        );
         DiagnosticReport diagnosticReport = new DiagnosticReport("Connector and firmware issues.");
         List<RepairTask> tasks = new ArrayList<>();
         tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
         tasks.add(new RepairTask("Update firmware", new Amount(650.0)));
 
-        repairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
-        Amount totalCost = repairOrder.calculateTotalCost(new WarrantyDiscountStrategy());
+        warrantyRepairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+        Amount totalCost = warrantyRepairOrder.calculateTotalCost(new WarrantyDiscountStrategy());
 
         assertEquals(new Amount(1395.0), totalCost);
+    }
+
+    @Test
+    void calculateTotalCostWithWarrantyDiscountStrategyDoesNotDiscountExpiredWarranty() {
+        Bike expiredWarrantyBike = new Bike("Crescent", "Elina", "SN-12345", LocalDate.now().minusDays(1));
+        Customer customer = new Customer("Sara Lind", "0701234567", "sara.lind@example.com", expiredWarrantyBike);
+        RepairOrder expiredWarrantyRepairOrder = new RepairOrder(
+            2,
+            customer,
+            expiredWarrantyBike,
+            "Battery drains quickly."
+        );
+        DiagnosticReport diagnosticReport = new DiagnosticReport("Connector and firmware issues.");
+        List<RepairTask> tasks = new ArrayList<>();
+        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+        tasks.add(new RepairTask("Update firmware", new Amount(650.0)));
+
+        expiredWarrantyRepairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+        Amount totalCost = expiredWarrantyRepairOrder.calculateTotalCost(new WarrantyDiscountStrategy());
+
+        assertEquals(new Amount(1550.0), totalCost);
+    }
+
+    @Test
+    void observerIsNotifiedWhenRepairOrderIsUpdatedDirectly() {
+        RecordingRepairOrderObserver observer = new RecordingRepairOrderObserver();
+        repairOrder.addObserver(observer);
+        DiagnosticReport diagnosticReport = new DiagnosticReport("Connector issue.");
+        List<RepairTask> tasks = new ArrayList<>();
+        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+
+        repairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+
+        assertEquals(1, observer.getUpdatedRepairOrders().size());
+        assertEquals("Connector issue.", observer.getUpdatedRepairOrders().get(0).getDiagnosticReportText());
+        assertEquals(RepairOrderState.NEWLY_CREATED, observer.getUpdatedRepairOrders().get(0).getState());
     }
 
     @Test
@@ -304,5 +348,18 @@ class RepairOrderTest {
         assertEquals(1, secondRead.size());
         assertEquals(1, repairOrder.getRepairTasks().size());
         assertNotNull(repairOrder.getRepairTasks().get(0));
+    }
+
+    private static class RecordingRepairOrderObserver implements RepairOrderObserver {
+        private final List<RepairOrderSnapshot> updatedRepairOrders = new ArrayList<>();
+
+        @Override
+        public void repairOrderUpdated(RepairOrderSnapshot repairOrder) {
+            updatedRepairOrders.add(repairOrder);
+        }
+
+        private List<RepairOrderSnapshot> getUpdatedRepairOrders() {
+            return updatedRepairOrders;
+        }
     }
 }

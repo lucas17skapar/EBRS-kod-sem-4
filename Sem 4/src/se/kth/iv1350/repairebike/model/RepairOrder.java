@@ -13,6 +13,8 @@ public class RepairOrder {
     private final Bike bike;
     private final String problemDescription;
     private final LocalDate createdDate;
+    private final DiscountStrategy discountStrategy;
+    private final List<RepairOrderObserver> observers;
     private DiagnosticReport diagnosticReport;
     private final List<RepairTask> repairTasks;
     private RepairOrderState state;
@@ -27,13 +29,46 @@ public class RepairOrder {
      * @param problemDescription The problem description.
      */
     public RepairOrder(int orderId, Customer customer, Bike bike, String problemDescription) {
+        this(orderId, customer, bike, problemDescription, new NoDiscountStrategy(), new ArrayList<>());
+    }
+
+    /**
+     * Creates a new repair order with observers.
+     *
+     * @param orderId The repair order id.
+     * @param customer The customer.
+     * @param bike The bike.
+     * @param problemDescription The problem description.
+     * @param discountStrategy The strategy used to calculate discounts.
+     * @param observers The observers to notify when the repair order changes.
+     */
+    public RepairOrder(
+        int orderId,
+        Customer customer,
+        Bike bike,
+        String problemDescription,
+        DiscountStrategy discountStrategy,
+        List<RepairOrderObserver> observers
+    ) {
         this.orderId = orderId;
         this.customer = customer;
         this.bike = bike;
         this.problemDescription = problemDescription;
         this.createdDate = LocalDate.now();
+        this.discountStrategy = discountStrategy;
+        this.observers = new ArrayList<>(observers);
         this.repairTasks = new ArrayList<>();
         this.state = RepairOrderState.NEWLY_CREATED;
+        notifyObservers();
+    }
+
+    /**
+     * Adds an observer that will be notified when this repair order changes.
+     *
+     * @param observer The observer to add.
+     */
+    public void addObserver(RepairOrderObserver observer) {
+        observers.add(observer);
     }
 
     /**
@@ -151,6 +186,7 @@ public class RepairOrder {
         this.repairTasks.clear();
         this.repairTasks.addAll(repairTasks);
         this.estimatedCompletionDate = estimatedCompletionDate;
+        notifyObservers();
         return true;
     }
 
@@ -162,6 +198,7 @@ public class RepairOrder {
     public boolean prepareRepairOrderForApproval() {
         if (diagnosticReport != null && !repairTasks.isEmpty() && !isFinalState()) {
             state = RepairOrderState.READY_FOR_APPROVAL;
+            notifyObservers();
             return true;
         }
         return false;
@@ -173,7 +210,7 @@ public class RepairOrder {
      * @return The total cost.
      */
     public Amount calculateTotalCost() {
-        return calculateTotalCost(new NoDiscountStrategy());
+        return calculateTotalCost(discountStrategy);
     }
 
     /**
@@ -199,6 +236,7 @@ public class RepairOrder {
     public boolean acceptRepairOrder() {
         if (state == RepairOrderState.READY_FOR_APPROVAL) {
             state = RepairOrderState.ACCEPTED;
+            notifyObservers();
             return true;
         }
         return false;
@@ -212,6 +250,7 @@ public class RepairOrder {
     public boolean rejectRepairOrder() {
         if (state == RepairOrderState.READY_FOR_APPROVAL) {
             state = RepairOrderState.REJECTED;
+            notifyObservers();
             return true;
         }
         return false;
@@ -219,6 +258,13 @@ public class RepairOrder {
 
     private boolean isFinalState() {
         return state == RepairOrderState.ACCEPTED || state == RepairOrderState.REJECTED;
+    }
+
+    private void notifyObservers() {
+        RepairOrderSnapshot snapshot = new RepairOrderSnapshot(this, calculateTotalCost(discountStrategy));
+        for (RepairOrderObserver observer : observers) {
+            observer.repairOrderUpdated(snapshot);
+        }
     }
 
 }

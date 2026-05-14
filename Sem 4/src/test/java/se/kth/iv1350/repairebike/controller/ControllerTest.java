@@ -12,6 +12,8 @@ import se.kth.iv1350.repairebike.integration.CustomerRegistry;
 import se.kth.iv1350.repairebike.integration.DatabaseFailureException;
 import se.kth.iv1350.repairebike.integration.Printer;
 import se.kth.iv1350.repairebike.integration.RepairOrderRegistry;
+import se.kth.iv1350.repairebike.model.RepairOrderObserver;
+import se.kth.iv1350.repairebike.model.RepairOrderSnapshot;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -85,10 +87,11 @@ class ControllerTest {
     }
 
     @Test
-    void createRepairOrderReturnsNullWhenNoCustomerHasBeenSelected() {
-        RepairOrderDTO result = controller.createRepairOrder("Battery drains quickly.");
-
-        assertNull(result);
+    void createRepairOrderThrowsExceptionWhenNoCustomerHasBeenSelected() {
+        assertThrows(
+            NoCurrentCustomerException.class,
+            () -> controller.createRepairOrder("Battery drains quickly.")
+        );
     }
 
     @Test
@@ -133,13 +136,16 @@ class ControllerTest {
     }
 
     @Test
-    void addDiagnosticReportReturnsNullWhenNoRepairOrderMatchesId() {
+    void addDiagnosticReportThrowsExceptionWhenNoRepairOrderMatchesId() {
         List<RepairTaskDTO> tasks = new ArrayList<>();
         tasks.add(new RepairTaskDTO("Replace connector", 900.0));
 
-        RepairOrderDTO result = controller.addDiagnosticReport(999, "Connector issue.", tasks);
+        RepairOrderNotFoundException exception = assertThrows(
+            RepairOrderNotFoundException.class,
+            () -> controller.addDiagnosticReport(999, "Connector issue.", tasks)
+        );
 
-        assertNull(result);
+        assertEquals(999, exception.getSearchedRepairOrderId());
     }
 
     @Test
@@ -206,10 +212,8 @@ class ControllerTest {
     }
 
     @Test
-    void prepareRepairOrderForApprovalReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrderDTO result = controller.prepareRepairOrderForApproval(999);
-
-        assertNull(result);
+    void prepareRepairOrderForApprovalThrowsExceptionWhenNoRepairOrderMatchesId() {
+        assertThrows(RepairOrderNotFoundException.class, () -> controller.prepareRepairOrderForApproval(999));
     }
 
     @Test
@@ -229,10 +233,8 @@ class ControllerTest {
     }
 
     @Test
-    void acceptRepairOrderReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrderDTO result = controller.acceptRepairOrder(999);
-
-        assertNull(result);
+    void acceptRepairOrderThrowsExceptionWhenNoRepairOrderMatchesId() {
+        assertThrows(RepairOrderNotFoundException.class, () -> controller.acceptRepairOrder(999));
     }
 
     @Test
@@ -263,10 +265,8 @@ class ControllerTest {
     }
 
     @Test
-    void rejectRepairOrderReturnsNullWhenNoRepairOrderMatchesId() {
-        RepairOrderDTO result = controller.rejectRepairOrder(999);
-
-        assertNull(result);
+    void rejectRepairOrderThrowsExceptionWhenNoRepairOrderMatchesId() {
+        assertThrows(RepairOrderNotFoundException.class, () -> controller.rejectRepairOrder(999));
     }
 
     @Test
@@ -322,14 +322,14 @@ class ControllerTest {
     }
 
     private static class RecordingRepairOrderObserver implements RepairOrderObserver {
-        private final List<RepairOrderDTO> updatedRepairOrders = new ArrayList<>();
+        private final List<RepairOrderSnapshot> updatedRepairOrders = new ArrayList<>();
 
         @Override
-        public void repairOrderUpdated(RepairOrderDTO repairOrder) {
+        public void repairOrderUpdated(RepairOrderSnapshot repairOrder) {
             updatedRepairOrders.add(repairOrder);
         }
 
-        private List<RepairOrderDTO> getUpdatedRepairOrders() {
+        private List<RepairOrderSnapshot> getUpdatedRepairOrders() {
             return updatedRepairOrders;
         }
     }

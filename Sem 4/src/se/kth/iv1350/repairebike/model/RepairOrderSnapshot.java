@@ -1,59 +1,40 @@
-package se.kth.iv1350.repairebike.dto;
+package se.kth.iv1350.repairebike.model;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Contains repair order data that may be shown by the view.
+ * Immutable repair order data sent to observers.
  */
-public class RepairOrderDTO {
+public class RepairOrderSnapshot {
     private final int orderId;
-    private final CustomerDTO customer;
-    private final BikeDTO bike;
+    private final Customer customer;
+    private final Bike bike;
     private final String problemDescription;
     private final LocalDate createdDate;
     private final String diagnosticReportText;
-    private final List<RepairTaskDTO> repairTasks;
-    private final String state;
+    private final List<RepairTask> repairTasks;
+    private final RepairOrderState state;
     private final LocalDate estimatedCompletionDate;
-    private final double totalCost;
+    private final Amount totalCost;
 
     /**
-     * Creates a new repair order DTO.
+     * Creates a repair order snapshot.
      *
-     * @param orderId The repair order id.
-     * @param customer The customer.
-     * @param bike The bike.
-     * @param problemDescription The problem description.
-     * @param createdDate The date when the repair order was created.
-     * @param diagnosticReportText The diagnostic report text.
-     * @param repairTasks The proposed repair tasks.
-     * @param state The repair order state.
-     * @param estimatedCompletionDate The estimated completion date.
-     * @param totalCost The total estimated repair cost.
+     * @param repairOrder The repair order to copy data from.
+     * @param totalCost The current total cost.
      */
-    public RepairOrderDTO(
-        int orderId,
-        CustomerDTO customer,
-        BikeDTO bike,
-        String problemDescription,
-        LocalDate createdDate,
-        String diagnosticReportText,
-        List<RepairTaskDTO> repairTasks,
-        String state,
-        LocalDate estimatedCompletionDate,
-        double totalCost
-    ) {
-        this.orderId = orderId;
-        this.customer = customer;
-        this.bike = bike;
-        this.problemDescription = problemDescription;
-        this.createdDate = createdDate;
-        this.diagnosticReportText = diagnosticReportText;
-        this.repairTasks = new ArrayList<>(repairTasks);
-        this.state = state;
-        this.estimatedCompletionDate = estimatedCompletionDate;
+    public RepairOrderSnapshot(RepairOrder repairOrder, Amount totalCost) {
+        this.orderId = repairOrder.getOrderId();
+        this.customer = repairOrder.getCustomer();
+        this.bike = repairOrder.getBike();
+        this.problemDescription = repairOrder.getProblemDescription();
+        this.createdDate = repairOrder.getCreatedDate();
+        this.diagnosticReportText = getDiagnosticReportText(repairOrder);
+        this.repairTasks = repairOrder.getRepairTasks();
+        this.state = repairOrder.getState();
+        this.estimatedCompletionDate = repairOrder.getEstimatedCompletionDate();
         this.totalCost = totalCost;
     }
 
@@ -71,7 +52,7 @@ public class RepairOrderDTO {
      *
      * @return The customer.
      */
-    public CustomerDTO getCustomer() {
+    public Customer getCustomer() {
         return customer;
     }
 
@@ -80,7 +61,7 @@ public class RepairOrderDTO {
      *
      * @return The bike.
      */
-    public BikeDTO getBike() {
+    public Bike getBike() {
         return bike;
     }
 
@@ -116,7 +97,7 @@ public class RepairOrderDTO {
      *
      * @return A copy of the proposed repair tasks.
      */
-    public List<RepairTaskDTO> getRepairTasks() {
+    public List<RepairTask> getRepairTasks() {
         return new ArrayList<>(repairTasks);
     }
 
@@ -125,7 +106,7 @@ public class RepairOrderDTO {
      *
      * @return The repair order state.
      */
-    public String getState() {
+    public RepairOrderState getState() {
         return state;
     }
 
@@ -143,7 +124,14 @@ public class RepairOrderDTO {
      *
      * @return The total estimated repair cost.
      */
-    public double getTotalCost() {
+    public Amount getTotalCost() {
         return totalCost;
+    }
+
+    private String getDiagnosticReportText(RepairOrder repairOrder) {
+        if (repairOrder.getDiagnosticReport() == null) {
+            return null;
+        }
+        return repairOrder.getDiagnosticReport().getReportText();
     }
 }

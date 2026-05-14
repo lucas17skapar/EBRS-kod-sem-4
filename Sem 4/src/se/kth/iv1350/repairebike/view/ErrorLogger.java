@@ -10,6 +10,23 @@ import java.time.LocalDateTime;
  */
 public class ErrorLogger {
     private static final String LOG_FILE_NAME = "repair-error-log.txt";
+    private final PrintWriter logStream;
+
+    /**
+     * Creates an error logger that writes to the default log file.
+     */
+    public ErrorLogger() {
+        this(null);
+    }
+
+    /**
+     * Creates an error logger that writes to the specified stream.
+     *
+     * @param logStream The stream to write to.
+     */
+    public ErrorLogger(PrintWriter logStream) {
+        this.logStream = logStream;
+    }
 
     /**
      * Logs the specified exception to a file.
@@ -17,15 +34,25 @@ public class ErrorLogger {
      * @param exception The exception to log.
      */
     public void logException(Exception exception) {
+        if (logStream != null) {
+            writeException(exception, logStream);
+            logStream.flush();
+            return;
+        }
+
         try (
             FileWriter fileWriter = new FileWriter(LOG_FILE_NAME, true);
-            PrintWriter logStream = new PrintWriter(fileWriter)
+            PrintWriter fileLogStream = new PrintWriter(fileWriter)
         ) {
-            logStream.println("Error report written at " + LocalDateTime.now());
-            exception.printStackTrace(logStream);
-            logStream.println();
+            writeException(exception, fileLogStream);
         } catch (IOException ioException) {
             System.err.println("Could not write to error log: " + ioException.getMessage());
         }
+    }
+
+    private void writeException(Exception exception, PrintWriter stream) {
+        stream.println("Error report written at " + LocalDateTime.now());
+        exception.printStackTrace(stream);
+        stream.println();
     }
 }

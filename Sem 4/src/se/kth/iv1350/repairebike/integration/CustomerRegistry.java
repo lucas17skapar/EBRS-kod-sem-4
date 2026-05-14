@@ -1,5 +1,6 @@
 package se.kth.iv1350.repairebike.integration;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import se.kth.iv1350.repairebike.model.Bike;
@@ -33,7 +34,7 @@ public class CustomerRegistry {
                 "Sara Lind",
                 "0701234567",
                 "sara.lind@example.com",
-                new Bike("Crescent", "Elina", "SN-12345")
+                new Bike("Crescent", "Elina", "SN-12345", LocalDate.now().plusYears(1))
             )
         );
         customers.add(
@@ -41,7 +42,7 @@ public class CustomerRegistry {
                 "Adam Holm",
                 "0709876543",
                 "adam.holm@example.com",
-                new Bike("Monark", "E-City", "SN-67890")
+                new Bike("Monark", "E-City", "SN-67890", LocalDate.now().minusYears(1))
             )
         );
     }

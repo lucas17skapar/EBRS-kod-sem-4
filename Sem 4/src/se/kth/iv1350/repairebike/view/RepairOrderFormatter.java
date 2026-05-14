@@ -5,6 +5,10 @@ import se.kth.iv1350.repairebike.dto.BikeDTO;
 import se.kth.iv1350.repairebike.dto.CustomerDTO;
 import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
 import se.kth.iv1350.repairebike.dto.RepairTaskDTO;
+import se.kth.iv1350.repairebike.model.Bike;
+import se.kth.iv1350.repairebike.model.Customer;
+import se.kth.iv1350.repairebike.model.RepairOrderSnapshot;
+import se.kth.iv1350.repairebike.model.RepairTask;
 
 class RepairOrderFormatter {
     private RepairOrderFormatter() {
@@ -26,6 +30,25 @@ class RepairOrderFormatter {
             + ", state=" + repairOrder.getState()
             + ", estimatedCompletionDate=" + repairOrder.getEstimatedCompletionDate()
             + ", totalCost=" + formatAmount(repairOrder.getTotalCost())
+            + "}";
+    }
+
+    static String formatRepairOrder(RepairOrderSnapshot repairOrder) {
+        if (repairOrder == null) {
+            return "none";
+        }
+
+        return "RepairOrder{"
+            + "orderId=" + repairOrder.getOrderId()
+            + ", customer=" + formatCustomer(repairOrder.getCustomer())
+            + ", bike=" + formatBike(repairOrder.getBike())
+            + ", problemDescription='" + repairOrder.getProblemDescription() + "'"
+            + ", createdDate=" + repairOrder.getCreatedDate()
+            + ", diagnosticReportText='" + formatNullable(repairOrder.getDiagnosticReportText()) + "'"
+            + ", repairTasks=" + formatModelRepairTasks(repairOrder.getRepairTasks())
+            + ", state=" + repairOrder.getState()
+            + ", estimatedCompletionDate=" + repairOrder.getEstimatedCompletionDate()
+            + ", totalCost=" + formatAmount(repairOrder.getTotalCost().getValue())
             + "}";
     }
 
@@ -69,6 +92,19 @@ class RepairOrderFormatter {
             + "}";
     }
 
+    static String formatCustomer(Customer customer) {
+        if (customer == null) {
+            return "none";
+        }
+
+        return "Customer{"
+            + "name='" + customer.getName() + "'"
+            + ", phoneNumber='" + customer.getPhoneNumber() + "'"
+            + ", email='" + customer.getEmail() + "'"
+            + ", bike=" + formatBike(customer.getBike())
+            + "}";
+    }
+
     static String formatBike(BikeDTO bike) {
         if (bike == null) {
             return "none";
@@ -81,6 +117,19 @@ class RepairOrderFormatter {
             + "}";
     }
 
+    static String formatBike(Bike bike) {
+        if (bike == null) {
+            return "none";
+        }
+
+        return "Bike{"
+            + "brand='" + bike.getBrand() + "'"
+            + ", model='" + bike.getModel() + "'"
+            + ", serialNumber='" + bike.getSerialNumber() + "'"
+            + ", warrantyEndDate=" + bike.getWarrantyEndDate()
+            + "}";
+    }
+
     static String formatRepairTasks(List<RepairTaskDTO> repairTasks) {
         StringBuilder builder = new StringBuilder("[");
         for (int i = 0; i < repairTasks.size(); i++) {
@@ -88,6 +137,22 @@ class RepairOrderFormatter {
             builder.append("RepairTask{")
                 .append("description='").append(repairTask.getDescription()).append("'")
                 .append(", cost=").append(formatAmount(repairTask.getCost()))
+                .append("}");
+            if (i < repairTasks.size() - 1) {
+                builder.append(", ");
+            }
+        }
+        builder.append("]");
+        return builder.toString();
+    }
+
+    private static String formatModelRepairTasks(List<RepairTask> repairTasks) {
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < repairTasks.size(); i++) {
+            RepairTask repairTask = repairTasks.get(i);
+            builder.append("RepairTask{")
+                .append("description='").append(repairTask.getDescription()).append("'")
+                .append(", cost=").append(formatAmount(repairTask.getCost().getValue()))
                 .append("}");
             if (i < repairTasks.size() - 1) {
                 builder.append(", ");

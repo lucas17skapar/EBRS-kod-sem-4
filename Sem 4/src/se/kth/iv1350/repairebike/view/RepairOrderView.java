@@ -1,7 +1,7 @@
 package se.kth.iv1350.repairebike.view;
 
-import se.kth.iv1350.repairebike.controller.RepairOrderObserver;
-import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
+import se.kth.iv1350.repairebike.model.RepairOrderObserver;
+import se.kth.iv1350.repairebike.model.RepairOrderSnapshot;
 
 /**
  * Shows repair order updates to technicians and receptionists.
@@ -10,10 +10,10 @@ public class RepairOrderView implements RepairOrderObserver {
     /**
      * Prints the updated repair order to standard output.
      *
-     * @param repairOrder The updated repair order.
+     * @param repairOrder The updated repair order snapshot.
      */
     @Override
-    public void repairOrderUpdated(RepairOrderDTO repairOrder) {
-        System.out.println("RepairOrderView update: " + repairOrder);
+    public void repairOrderUpdated(RepairOrderSnapshot repairOrder) {
+        System.out.println("RepairOrderView update: " + RepairOrderFormatter.formatRepairOrder(repairOrder));
     }
 }

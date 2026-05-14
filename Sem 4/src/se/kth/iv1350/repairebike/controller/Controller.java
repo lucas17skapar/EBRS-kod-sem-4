@@ -19,6 +19,7 @@ import se.kth.iv1350.repairebike.model.DiagnosticReport;
 import se.kth.iv1350.repairebike.model.DiscountStrategy;
 import se.kth.iv1350.repairebike.model.NoDiscountStrategy;
 import se.kth.iv1350.repairebike.model.RepairOrder;
+import se.kth.iv1350.repairebike.model.RepairOrderObserver;
 import se.kth.iv1350.repairebike.model.RepairTask;
 
 /**
@@ -101,11 +102,12 @@ public class Controller {
      * Creates a new repair order for the current customer.
      *
      * @param problemDescription The customer's problem description.
-     * @return The created repair order data, or {@code null} if no customer is selected.
+     * @return The created repair order data.
+     * @throws NoCurrentCustomerException If no customer has been selected.
      */
-    public RepairOrderDTO createRepairOrder(String problemDescription) {
+    public RepairOrderDTO createRepairOrder(String problemDescription) throws NoCurrentCustomerException {
         if (currentCustomer == null) {
-            return null;
+            throw new NoCurrentCustomerException();
         }
 
         int repairOrderId = repairOrderRegistry.generateRepairOrderId();
@@ -113,22 +115,23 @@ public class Controller {
             repairOrderId,
             currentCustomer,
             currentCustomer.getBike(),
-            problemDescription
+            problemDescription,
+            discountStrategy,
+            repairOrderObservers
         );
         repairOrderRegistry.addRepairOrder(repairOrder);
-        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
-        notifyRepairOrderObservers(repairOrderDTO);
-        return repairOrderDTO;
+        return createRepairOrderDTO(repairOrder);
     }
 
     /**
      * Finds a repair order by id.
      *
      * @param repairOrderId The repair order id.
-     * @return The matching repair order data, or {@code null} if no match is found.
+     * @return The matching repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
-    public RepairOrderDTO findRepairOrder(int repairOrderId) {
-        return createRepairOrderDTO(repairOrderRegistry.findRepairOrder(repairOrderId));
+    public RepairOrderDTO findRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+        return createRepairOrderDTO(findExistingRepairOrder(repairOrderId));
     }
 
     /**
@@ -137,18 +140,15 @@ public class Controller {
      * @param repairOrderId The repair order id.
      * @param reportText The diagnostic report text.
      * @param repairTasks The proposed repair tasks.
-     * @return The updated repair order data, or {@code null} if no matching order exists.
+     * @return The updated repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
     public RepairOrderDTO addDiagnosticReport(
         int repairOrderId,
         String reportText,
         List<RepairTaskDTO> repairTasks
-    ) {
-        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
-        if (repairOrder == null) {
-            return null;
-        }
-
+    ) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
         return addDiagnosticReportToRepairOrder(
             repairOrder,
             reportText,
@@ -164,19 +164,16 @@ public class Controller {
      * @param reportText The diagnostic report text.
      * @param repairTasks The proposed repair tasks.
      * @param estimatedCompletionDate The estimated completion date.
-     * @return The updated repair order data, or {@code null} if no matching order exists.
+     * @return The updated repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
     public RepairOrderDTO addDiagnosticReport(
         int repairOrderId,
         String reportText,
         List<RepairTaskDTO> repairTasks,
         LocalDate estimatedCompletionDate
-    ) {
-        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
-        if (repairOrder == null) {
-            return null;
-        }
-
+    ) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
         return addDiagnosticReportToRepairOrder(
             repairOrder,
             reportText,
@@ -189,60 +186,39 @@ public class Controller {
      * Prepares a repair order for customer approval.
      *
      * @param repairOrderId The repair order id.
-     * @return The prepared repair order data, or {@code null} if no matching order exists.
+     * @return The prepared repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
-    public RepairOrderDTO prepareRepairOrderForApproval(int repairOrderId) {
-        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
-        if (repairOrder == null) {
-            return null;
-        }
-
-        boolean repairOrderWasUpdated = repairOrder.prepareRepairOrderForApproval();
-        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
-        if (repairOrderWasUpdated) {
-            notifyRepairOrderObservers(repairOrderDTO);
-        }
-        return repairOrderDTO;
+    public RepairOrderDTO prepareRepairOrderForApproval(int repairOrderId) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
+        repairOrder.prepareRepairOrderForApproval();
+        return createRepairOrderDTO(repairOrder);
     }
 
     /**
      * Accepts a repair order.
      *
      * @param repairOrderId The repair order id.
-     * @return The accepted repair order data, or {@code null} if no matching order exists.
+     * @return The accepted repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
-    public RepairOrderDTO acceptRepairOrder(int repairOrderId) {
-        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
-        if (repairOrder == null) {
-            return null;
-        }
-
-        boolean repairOrderWasUpdated = repairOrder.acceptRepairOrder();
-        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
-        if (repairOrderWasUpdated) {
-            notifyRepairOrderObservers(repairOrderDTO);
-        }
-        return repairOrderDTO;
+    public RepairOrderDTO acceptRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
+        repairOrder.acceptRepairOrder();
+        return createRepairOrderDTO(repairOrder);
     }
 
     /**
      * Rejects a repair order.
      *
      * @param repairOrderId The repair order id.
-     * @return The rejected repair order data, or {@code null} if no matching order exists.
+     * @return The rejected repair order data.
+     * @throws RepairOrderNotFoundException If no repair order has the specified id.
      */
-    public RepairOrderDTO rejectRepairOrder(int repairOrderId) {
-        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
-        if (repairOrder == null) {
-            return null;
-        }
-
-        boolean repairOrderWasUpdated = repairOrder.rejectRepairOrder();
-        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
-        if (repairOrderWasUpdated) {
-            notifyRepairOrderObservers(repairOrderDTO);
-        }
-        return repairOrderDTO;
+    public RepairOrderDTO rejectRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
+        repairOrder.rejectRepairOrder();
+        return createRepairOrderDTO(repairOrder);
     }
 
     /**
@@ -261,16 +237,12 @@ public class Controller {
         LocalDate estimatedCompletionDate
     ) {
         DiagnosticReport diagnosticReport = new DiagnosticReport(reportText);
-        boolean repairOrderWasUpdated = repairOrder.addDiagnosticReportAndProposedRepairTasks(
+        repairOrder.addDiagnosticReportAndProposedRepairTasks(
             diagnosticReport,
             repairTasks,
             estimatedCompletionDate
         );
-        RepairOrderDTO repairOrderDTO = createRepairOrderDTO(repairOrder);
-        if (repairOrderWasUpdated) {
-            notifyRepairOrderObservers(repairOrderDTO);
-        }
-        return repairOrderDTO;
+        return createRepairOrderDTO(repairOrder);
     }
 
     private List<RepairTask> createRepairTasks(List<RepairTaskDTO> repairTaskDTOs) {
@@ -287,10 +259,6 @@ public class Controller {
     }
 
     private RepairOrderDTO createRepairOrderDTO(RepairOrder repairOrder) {
-        if (repairOrder == null) {
-            return null;
-        }
-
         String diagnosticReportText = null;
         if (repairOrder.getDiagnosticReport() != null) {
             diagnosticReportText = repairOrder.getDiagnosticReport().getReportText();
@@ -306,8 +274,16 @@ public class Controller {
             createRepairTaskDTOs(repairOrder.getRepairTasks()),
             repairOrder.getState().name(),
             repairOrder.getEstimatedCompletionDate(),
-            repairOrder.calculateTotalCost(discountStrategy).getValue()
+            repairOrder.calculateTotalCost().getValue()
         );
+    }
+
+    private RepairOrder findExistingRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+        RepairOrder repairOrder = repairOrderRegistry.findRepairOrder(repairOrderId);
+        if (repairOrder == null) {
+            throw new RepairOrderNotFoundException(repairOrderId);
+        }
+        return repairOrder;
     }
 
     private CustomerDTO createCustomerDTO(Customer customer) {
@@ -346,12 +322,6 @@ public class Controller {
             );
         }
         return repairTaskDTOs;
-    }
-
-    private void notifyRepairOrderObservers(RepairOrderDTO repairOrderDTO) {
-        for (RepairOrderObserver repairOrderObserver : repairOrderObservers) {
-            repairOrderObserver.repairOrderUpdated(repairOrderDTO);
-        }
     }
 
 }
