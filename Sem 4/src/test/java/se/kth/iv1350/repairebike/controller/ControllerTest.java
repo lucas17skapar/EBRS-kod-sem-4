@@ -1,5 +1,6 @@
 package se.kth.iv1350.repairebike.controller;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -166,7 +167,7 @@ class ControllerTest {
         assertNotNull(updatedOrder);
         assertEquals("Connector and firmware issues.", updatedOrder.getDiagnosticReportText());
         assertEquals(2, updatedOrder.getRepairTasks().size());
-        assertEquals(1550.0, updatedOrder.getTotalCost(), 0.001);
+        assertEquals(new BigDecimal("1550.0"), updatedOrder.getTotalCost());
         assertEquals("NEWLY_CREATED", updatedOrder.getState());
         assertEquals(updatedOrder.getOrderId(), controller.findRepairOrder(createdOrder.getOrderId()).getOrderId());
     }
@@ -254,14 +255,30 @@ class ControllerTest {
     }
 
     @Test
-    void acceptRepairOrderDoesNotAcceptOrderBeforeItIsReadyForApproval() throws Exception {
+    void acceptRepairOrderThrowsExceptionBeforeItIsReadyForApproval() throws Exception {
         controller.findCustomer("0701234567");
         RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
 
-        RepairOrderDTO acceptedOrder = controller.acceptRepairOrder(createdOrder.getOrderId());
+        InvalidRepairOrderStateException exception = assertThrows(
+            InvalidRepairOrderStateException.class,
+            () -> controller.acceptRepairOrder(createdOrder.getOrderId())
+        );
 
-        assertNotNull(acceptedOrder);
-        assertEquals("NEWLY_CREATED", acceptedOrder.getState());
+        assertEquals(createdOrder.getOrderId(), exception.getRepairOrderId());
+        assertTrue(exception.getMessage().contains("READY_FOR_APPROVAL"));
+    }
+
+    @Test
+    void prepareRepairOrderForApprovalThrowsExceptionWithoutDiagnosticReport() throws Exception {
+        controller.findCustomer("0701234567");
+        RepairOrderDTO createdOrder = controller.createRepairOrder("Battery drains quickly.");
+
+        InvalidRepairOrderStateException exception = assertThrows(
+            InvalidRepairOrderStateException.class,
+            () -> controller.prepareRepairOrderForApproval(createdOrder.getOrderId())
+        );
+
+        assertEquals(createdOrder.getOrderId(), exception.getRepairOrderId());
     }
 
     @Test

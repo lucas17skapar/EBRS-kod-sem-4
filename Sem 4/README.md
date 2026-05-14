@@ -8,6 +8,11 @@ Requirements:
 * Java 17 or newer.
 * Maven 3.9 or newer.
 
+Continuous integration:
+
+* GitHub Actions runs `mvn -q test` on push and pull request.
+* Maven Wrapper is not committed. Generate it with `mvn -N wrapper:wrapper` if the submission environment requires `./mvnw`.
+
 Run the program:
 
 ```sh
@@ -45,6 +50,9 @@ Implemented seminar 4 requirements:
 * Singleton is used for `CustomerRegistry`.
 * Strategy is used for repair order discounts. `Main` uses `WarrantyDiscountStrategy`, while tests also cover `NoDiscountStrategy`.
 * Bike warranty is explicit domain data, not inferred from serial number format.
+* Invalid repair order state transitions are reported with `InvalidRepairOrderStateException`.
+* Repair order logs mask customer name, phone number, and email.
+* Amounts are kept as `BigDecimal` in repair order DTOs and formatted without converting totals to `double`.
 
 Example output from `View.sampleExecution()`:
 

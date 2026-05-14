@@ -1,6 +1,7 @@
 package se.kth.iv1350.repairebike.view;
 
 import java.util.List;
+import java.math.BigDecimal;
 import se.kth.iv1350.repairebike.dto.BikeDTO;
 import se.kth.iv1350.repairebike.dto.CustomerDTO;
 import se.kth.iv1350.repairebike.dto.RepairOrderDTO;
@@ -48,7 +49,24 @@ class RepairOrderFormatter {
             + ", repairTasks=" + formatModelRepairTasks(repairOrder.getRepairTasks())
             + ", state=" + repairOrder.getState()
             + ", estimatedCompletionDate=" + repairOrder.getEstimatedCompletionDate()
-            + ", totalCost=" + formatAmount(repairOrder.getTotalCost().getValue())
+            + ", totalCost=" + repairOrder.getTotalCost()
+            + "}";
+    }
+
+    static String formatRepairOrderForLog(RepairOrderSnapshot repairOrder) {
+        if (repairOrder == null) {
+            return "none";
+        }
+
+        return "RepairOrder{"
+            + "orderId=" + repairOrder.getOrderId()
+            + ", customer=" + formatCustomerForLog(repairOrder.getCustomer())
+            + ", bikeSerialNumber=" + repairOrder.getBike().getSerialNumber()
+            + ", problemDescription='" + repairOrder.getProblemDescription() + "'"
+            + ", diagnosticReportText='" + formatNullable(repairOrder.getDiagnosticReportText()) + "'"
+            + ", state=" + repairOrder.getState()
+            + ", estimatedCompletionDate=" + repairOrder.getEstimatedCompletionDate()
+            + ", totalCost=" + repairOrder.getTotalCost()
             + "}";
     }
 
@@ -105,6 +123,18 @@ class RepairOrderFormatter {
             + "}";
     }
 
+    private static String formatCustomerForLog(Customer customer) {
+        if (customer == null) {
+            return "none";
+        }
+
+        return "Customer{"
+            + "name='hidden'"
+            + ", phoneNumber='" + maskPhoneNumber(customer.getPhoneNumber()) + "'"
+            + ", email='" + maskEmail(customer.getEmail()) + "'"
+            + "}";
+    }
+
     static String formatBike(BikeDTO bike) {
         if (bike == null) {
             return "none";
@@ -152,7 +182,7 @@ class RepairOrderFormatter {
             RepairTask repairTask = repairTasks.get(i);
             builder.append("RepairTask{")
                 .append("description='").append(repairTask.getDescription()).append("'")
-                .append(", cost=").append(formatAmount(repairTask.getCost().getValue()))
+                .append(", cost=").append(repairTask.getCost())
                 .append("}");
             if (i < repairTasks.size() - 1) {
                 builder.append(", ");
@@ -169,10 +199,32 @@ class RepairOrderFormatter {
         return Double.toString(amount);
     }
 
+    static String formatAmount(BigDecimal amount) {
+        return amount.stripTrailingZeros().toPlainString();
+    }
+
     private static String formatNullable(String text) {
         if (text == null) {
             return "none";
         }
         return text;
+    }
+
+    private static String maskPhoneNumber(String phoneNumber) {
+        if (phoneNumber == null || phoneNumber.length() < 4) {
+            return "****";
+        }
+        return "****" + phoneNumber.substring(phoneNumber.length() - 4);
+    }
+
+    private static String maskEmail(String email) {
+        if (email == null || !email.contains("@")) {
+            return "hidden";
+        }
+        String[] parts = email.split("@", 2);
+        if (parts[0].isEmpty()) {
+            return "***@" + parts[1];
+        }
+        return parts[0].charAt(0) + "***@" + parts[1];
     }
 }

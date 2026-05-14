@@ -120,6 +120,7 @@ public class Controller {
             repairOrderObservers
         );
         repairOrderRegistry.addRepairOrder(repairOrder);
+        repairOrder.publishCurrentState();
         return createRepairOrderDTO(repairOrder);
     }
 
@@ -142,12 +143,13 @@ public class Controller {
      * @param repairTasks The proposed repair tasks.
      * @return The updated repair order data.
      * @throws RepairOrderNotFoundException If no repair order has the specified id.
+     * @throws InvalidRepairOrderStateException If the repair order can not be updated.
      */
     public RepairOrderDTO addDiagnosticReport(
         int repairOrderId,
         String reportText,
         List<RepairTaskDTO> repairTasks
-    ) throws RepairOrderNotFoundException {
+    ) throws RepairOrderNotFoundException, InvalidRepairOrderStateException {
         RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
         return addDiagnosticReportToRepairOrder(
             repairOrder,
@@ -166,13 +168,14 @@ public class Controller {
      * @param estimatedCompletionDate The estimated completion date.
      * @return The updated repair order data.
      * @throws RepairOrderNotFoundException If no repair order has the specified id.
+     * @throws InvalidRepairOrderStateException If the repair order can not be updated.
      */
     public RepairOrderDTO addDiagnosticReport(
         int repairOrderId,
         String reportText,
         List<RepairTaskDTO> repairTasks,
         LocalDate estimatedCompletionDate
-    ) throws RepairOrderNotFoundException {
+    ) throws RepairOrderNotFoundException, InvalidRepairOrderStateException {
         RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
         return addDiagnosticReportToRepairOrder(
             repairOrder,
@@ -188,10 +191,17 @@ public class Controller {
      * @param repairOrderId The repair order id.
      * @return The prepared repair order data.
      * @throws RepairOrderNotFoundException If no repair order has the specified id.
+     * @throws InvalidRepairOrderStateException If the repair order is not ready for approval.
      */
-    public RepairOrderDTO prepareRepairOrderForApproval(int repairOrderId) throws RepairOrderNotFoundException {
+    public RepairOrderDTO prepareRepairOrderForApproval(int repairOrderId)
+        throws RepairOrderNotFoundException, InvalidRepairOrderStateException {
         RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
-        repairOrder.prepareRepairOrderForApproval();
+        if (!repairOrder.prepareRepairOrderForApproval()) {
+            throw new InvalidRepairOrderStateException(
+                repairOrderId,
+                "must have a diagnostic report and proposed repair tasks before approval"
+            );
+        }
         return createRepairOrderDTO(repairOrder);
     }
 
@@ -201,10 +211,17 @@ public class Controller {
      * @param repairOrderId The repair order id.
      * @return The accepted repair order data.
      * @throws RepairOrderNotFoundException If no repair order has the specified id.
+     * @throws InvalidRepairOrderStateException If the repair order is not ready for approval.
      */
-    public RepairOrderDTO acceptRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+    public RepairOrderDTO acceptRepairOrder(int repairOrderId)
+        throws RepairOrderNotFoundException, InvalidRepairOrderStateException {
         RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
-        repairOrder.acceptRepairOrder();
+        if (!repairOrder.acceptRepairOrder()) {
+            throw new InvalidRepairOrderStateException(
+                repairOrderId,
+                "must be READY_FOR_APPROVAL before it can be accepted"
+            );
+        }
         return createRepairOrderDTO(repairOrder);
     }
 
@@ -214,10 +231,17 @@ public class Controller {
      * @param repairOrderId The repair order id.
      * @return The rejected repair order data.
      * @throws RepairOrderNotFoundException If no repair order has the specified id.
+     * @throws InvalidRepairOrderStateException If the repair order is not ready for approval.
      */
-    public RepairOrderDTO rejectRepairOrder(int repairOrderId) throws RepairOrderNotFoundException {
+    public RepairOrderDTO rejectRepairOrder(int repairOrderId)
+        throws RepairOrderNotFoundException, InvalidRepairOrderStateException {
         RepairOrder repairOrder = findExistingRepairOrder(repairOrderId);
-        repairOrder.rejectRepairOrder();
+        if (!repairOrder.rejectRepairOrder()) {
+            throw new InvalidRepairOrderStateException(
+                repairOrderId,
+                "must be READY_FOR_APPROVAL before it can be rejected"
+            );
+        }
         return createRepairOrderDTO(repairOrder);
     }
 
@@ -235,13 +259,19 @@ public class Controller {
         String reportText,
         List<RepairTask> repairTasks,
         LocalDate estimatedCompletionDate
-    ) {
+    ) throws InvalidRepairOrderStateException {
         DiagnosticReport diagnosticReport = new DiagnosticReport(reportText);
-        repairOrder.addDiagnosticReportAndProposedRepairTasks(
+        boolean wasUpdated = repairOrder.addDiagnosticReportAndProposedRepairTasks(
             diagnosticReport,
             repairTasks,
             estimatedCompletionDate
         );
+        if (!wasUpdated) {
+            throw new InvalidRepairOrderStateException(
+                repairOrder.getOrderId(),
+                "can not be changed after it has been accepted or rejected"
+            );
+        }
         return createRepairOrderDTO(repairOrder);
     }
 
@@ -274,7 +304,7 @@ public class Controller {
             createRepairTaskDTOs(repairOrder.getRepairTasks()),
             repairOrder.getState().name(),
             repairOrder.getEstimatedCompletionDate(),
-            repairOrder.calculateTotalCost().getValue()
+            repairOrder.calculateTotalCost().asBigDecimal()
         );
     }
 

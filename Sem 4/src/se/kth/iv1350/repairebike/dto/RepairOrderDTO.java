@@ -1,5 +1,6 @@
 package se.kth.iv1350.repairebike.dto;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ public class RepairOrderDTO {
     private final List<RepairTaskDTO> repairTasks;
     private final String state;
     private final LocalDate estimatedCompletionDate;
-    private final double totalCost;
+    private final BigDecimal totalCost;
 
     /**
      * Creates a new repair order DTO.
@@ -43,7 +44,7 @@ public class RepairOrderDTO {
         List<RepairTaskDTO> repairTasks,
         String state,
         LocalDate estimatedCompletionDate,
-        double totalCost
+        BigDecimal totalCost
     ) {
         this.orderId = orderId;
         this.customer = customer;
@@ -143,7 +144,7 @@ public class RepairOrderDTO {
      *
      * @return The total estimated repair cost.
      */
-    public double getTotalCost() {
+    public BigDecimal getTotalCost() {
         return totalCost;
     }
 }

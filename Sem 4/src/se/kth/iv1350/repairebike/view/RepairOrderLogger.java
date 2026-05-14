@@ -55,7 +55,7 @@ public class RepairOrderLogger implements RepairOrderObserver {
 
     private void writeRepairOrderUpdate(RepairOrderSnapshot repairOrder, PrintWriter stream) {
         stream.println("Repair order update written at " + LocalDateTime.now());
-        stream.println(RepairOrderFormatter.formatRepairOrder(repairOrder));
+        stream.println(RepairOrderFormatter.formatRepairOrderForLog(repairOrder));
         stream.println();
     }
 }

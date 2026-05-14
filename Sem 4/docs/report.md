@@ -12,6 +12,14 @@ Two additional GoF patterns were implemented. `CustomerRegistry` is a Singleton 
 
 Unit tests were added or updated while implementing each change. Exception tests cover both thrown exceptions and the view catch blocks. Loggers can now receive a `PrintWriter`, which makes logging behavior testable without writing test data to real log files.
 
+Invalid repair order state transitions are treated as errors at the controller level. The model returns whether a state-changing operation succeeded, and the controller maps a failed transition to `InvalidRepairOrderStateException`. This makes failed use-case steps explicit to callers instead of silently returning unchanged data.
+
+The first observer notification is published after the new repair order has been registered. This avoids external side effects in the `RepairOrder` constructor and makes the object lifecycle clearer.
+
+Money is represented by `Amount`, which stores `BigDecimal`. Repair order DTOs now keep totals as `BigDecimal`, and formatting uses decimal string output instead of converting totals through `double`.
+
+Repair order log entries are formatted separately from user-facing output. The log formatter masks customer name, phone number and email to avoid writing personal data in clear text.
+
 ## Result
 
 The application still follows the layered structure from the earlier seminars:
@@ -27,10 +35,11 @@ Important changed classes:
 
 * `CustomerRegistry` throws checked exceptions for missing customers and simulated database failure.
 * `Controller` maps lower-level exceptions to controller-level exceptions and no longer returns `null` for missing selected customer or missing repair order.
+* `Controller` throws `InvalidRepairOrderStateException` when a repair order operation is not allowed in the current state.
 * `RepairOrder` owns the observer list and notifies observers when its state or contents change.
 * `RepairOrderView` prints repair order snapshots to `System.out`.
-* `RepairOrderLogger` writes repair order snapshots to `repair-order-log.txt`.
-* `ErrorLogger` writes developer error reports to `repair-error-log.txt`.
+* `RepairOrderLogger` writes masked repair order snapshots to `repair-order-log.txt`.
+* `ErrorLogger` writes developer error summaries to `repair-error-log.txt`.
 * `Bike` now contains warranty data used by `WarrantyDiscountStrategy`.
 
 Sample run:
@@ -67,4 +76,6 @@ The Singleton use is intentionally small and limited to the simulated customer r
 
 The Strategy implementation is used for discount calculation because discount rules can vary without changing `RepairOrder`. Explicit warranty data in `Bike` makes the strategy more domain-oriented than checking a hard-coded serial number prefix.
 
-Remaining limitations are mostly due to the assignment scope. The registries are still in-memory simulations, and the view is a hard-coded sample flow rather than an interactive UI. This is acceptable for the seminar requirements, where the focus is exception handling, observer behavior, design patterns, and tests.
+The solution intentionally uses simple file logging instead of a logging framework, since external frameworks are outside the seminar scope. The log entries are nevertheless separated from user-facing formatting and avoid clear-text personal data.
+
+Remaining limitations are mostly due to the assignment scope. The registries are still in-memory simulations, and the view is a hard-coded sample flow rather than an interactive UI. Maven Wrapper is not committed because it must be generated with Maven in an environment that can download the wrapper files. This is acceptable for the seminar requirements, where the focus is exception handling, observer behavior, design patterns, and tests.

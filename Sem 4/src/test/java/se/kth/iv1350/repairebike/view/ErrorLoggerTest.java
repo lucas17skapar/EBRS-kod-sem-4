@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ErrorLoggerTest {
     @Test
-    void logExceptionWritesErrorReportAndStackTrace() {
+    void logExceptionWritesErrorReportAndExceptionSummary() {
         StringWriter log = new StringWriter();
         ErrorLogger errorLogger = new ErrorLogger(new PrintWriter(log));
         OperationFailedException exception = new OperationFailedException(

@@ -35,7 +35,7 @@ public class ErrorLogger {
      */
     public void logException(Exception exception) {
         if (logStream != null) {
-            writeException(exception, logStream);
+            writeExceptionSummary(exception, logStream);
             logStream.flush();
             return;
         }
@@ -44,15 +44,19 @@ public class ErrorLogger {
             FileWriter fileWriter = new FileWriter(LOG_FILE_NAME, true);
             PrintWriter fileLogStream = new PrintWriter(fileWriter)
         ) {
-            writeException(exception, fileLogStream);
+            writeExceptionSummary(exception, fileLogStream);
         } catch (IOException ioException) {
             System.err.println("Could not write to error log: " + ioException.getMessage());
         }
     }
 
-    private void writeException(Exception exception, PrintWriter stream) {
+    private void writeExceptionSummary(Exception exception, PrintWriter stream) {
         stream.println("Error report written at " + LocalDateTime.now());
-        exception.printStackTrace(stream);
+        Throwable current = exception;
+        while (current != null) {
+            stream.println(current.getClass().getName() + ": " + current.getMessage());
+            current = current.getCause();
+        }
         stream.println();
     }
 }

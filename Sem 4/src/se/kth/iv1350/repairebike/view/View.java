@@ -1,10 +1,12 @@
 package se.kth.iv1350.repairebike.view;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import se.kth.iv1350.repairebike.controller.Controller;
 import se.kth.iv1350.repairebike.controller.CustomerNotFoundException;
+import se.kth.iv1350.repairebike.controller.InvalidRepairOrderStateException;
 import se.kth.iv1350.repairebike.controller.NoCurrentCustomerException;
 import se.kth.iv1350.repairebike.controller.OperationFailedException;
 import se.kth.iv1350.repairebike.controller.RepairOrderNotFoundException;
@@ -89,7 +91,7 @@ public class View {
             }
 
             System.out.println("10. Accepted repair order: " + formatRepairOrder(acceptedOrder));
-        } catch (NoCurrentCustomerException | RepairOrderNotFoundException exc) {
+        } catch (NoCurrentCustomerException | RepairOrderNotFoundException | InvalidRepairOrderStateException exc) {
             errorMessageHandler.showErrorMessage("The repair order operation could not be completed.");
             errorLogger.logException(exc);
         }
@@ -131,7 +133,7 @@ public class View {
         return RepairOrderFormatter.formatRepairTasks(repairTasks);
     }
 
-    private String formatAmount(double amount) {
+    private String formatAmount(BigDecimal amount) {
         return RepairOrderFormatter.formatAmount(amount);
     }
 }

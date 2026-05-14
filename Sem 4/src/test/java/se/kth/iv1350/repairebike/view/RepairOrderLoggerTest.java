@@ -26,6 +26,8 @@ class RepairOrderLoggerTest {
         assertTrue(log.toString().contains("Repair order update written at"));
         assertTrue(log.toString().contains("RepairOrder{orderId=1"));
         assertTrue(log.toString().contains("Connector issue."));
+        assertTrue(log.toString().contains("phoneNumber='****4567'"));
+        assertTrue(log.toString().contains("email='s***@example.com'"));
     }
 
     private RepairOrderSnapshot createRepairOrderSnapshot() {

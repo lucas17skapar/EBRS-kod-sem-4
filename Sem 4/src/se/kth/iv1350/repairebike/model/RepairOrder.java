@@ -59,7 +59,6 @@ public class RepairOrder {
         this.observers = new ArrayList<>(observers);
         this.repairTasks = new ArrayList<>();
         this.state = RepairOrderState.NEWLY_CREATED;
-        notifyObservers();
     }
 
     /**
@@ -69,6 +68,13 @@ public class RepairOrder {
      */
     public void addObserver(RepairOrderObserver observer) {
         observers.add(observer);
+    }
+
+    /**
+     * Publishes the current state to all observers.
+     */
+    public void publishCurrentState() {
+        notifyObservers();
     }
 
     /**

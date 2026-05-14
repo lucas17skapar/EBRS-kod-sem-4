@@ -59,10 +59,29 @@ public class Amount {
     /**
      * Gets the amount value.
      *
+     * @return The amount as a {@link BigDecimal}.
+     */
+    public BigDecimal asBigDecimal() {
+        return value;
+    }
+
+    /**
+     * Gets the amount value.
+     *
      * @return The amount as a double.
      */
     public double getValue() {
         return value.doubleValue();
+    }
+
+    /**
+     * Gets a string representation of this amount.
+     *
+     * @return The amount without insignificant trailing zeros.
+     */
+    @Override
+    public String toString() {
+        return value.stripTrailingZeros().toPlainString();
     }
 
     /**
