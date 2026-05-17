@@ -1,7 +1,7 @@
 package se.kth.iv1350.repairebike.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -9,15 +9,45 @@ import java.util.List;
  */
 public class RepairOrderSnapshot {
     private final int orderId;
-    private final Customer customer;
-    private final Bike bike;
+    private final CustomerData customer;
+    private final BikeData bike;
     private final String problemDescription;
     private final LocalDate createdDate;
     private final String diagnosticReportText;
-    private final List<RepairTask> repairTasks;
+    private final List<RepairTaskData> repairTasks;
     private final RepairOrderState state;
     private final LocalDate estimatedCompletionDate;
-    private final Amount totalCost;
+    private final BigDecimal totalCost;
+
+    /**
+     * Immutable customer data sent to observers.
+     *
+     * @param name The customer name.
+     * @param phoneNumber The customer phone number.
+     * @param email The customer email address.
+     */
+    public record CustomerData(String name, String phoneNumber, String email) {
+    }
+
+    /**
+     * Immutable bike data sent to observers.
+     *
+     * @param brand The bike brand.
+     * @param model The bike model.
+     * @param serialNumber The bike serial number.
+     * @param warrantyEndDate The last day covered by warranty.
+     */
+    public record BikeData(String brand, String model, String serialNumber, LocalDate warrantyEndDate) {
+    }
+
+    /**
+     * Immutable repair task data sent to observers.
+     *
+     * @param description The task description.
+     * @param cost The estimated task cost.
+     */
+    public record RepairTaskData(String description, BigDecimal cost) {
+    }
 
     /**
      * Creates a repair order snapshot.
@@ -27,15 +57,17 @@ public class RepairOrderSnapshot {
      */
     public RepairOrderSnapshot(RepairOrder repairOrder, Amount totalCost) {
         this.orderId = repairOrder.getOrderId();
-        this.customer = repairOrder.getCustomer();
-        this.bike = repairOrder.getBike();
+        this.customer = createCustomerData(repairOrder.getCustomer());
+        this.bike = createBikeData(repairOrder.getBike());
         this.problemDescription = repairOrder.getProblemDescription();
         this.createdDate = repairOrder.getCreatedDate();
         this.diagnosticReportText = getDiagnosticReportText(repairOrder);
-        this.repairTasks = repairOrder.getRepairTasks();
+        this.repairTasks = repairOrder.getRepairTasks().stream()
+            .map(this::createRepairTaskData)
+            .toList();
         this.state = repairOrder.getState();
         this.estimatedCompletionDate = repairOrder.getEstimatedCompletionDate();
-        this.totalCost = totalCost;
+        this.totalCost = totalCost.asBigDecimal();
     }
 
     /**
@@ -48,20 +80,20 @@ public class RepairOrderSnapshot {
     }
 
     /**
-     * Gets the customer.
+     * Gets copied customer data.
      *
-     * @return The customer.
+     * @return The copied customer data.
      */
-    public Customer getCustomer() {
+    public CustomerData getCustomer() {
         return customer;
     }
 
     /**
-     * Gets the bike.
+     * Gets copied bike data.
      *
-     * @return The bike.
+     * @return The copied bike data.
      */
-    public Bike getBike() {
+    public BikeData getBike() {
         return bike;
     }
 
@@ -93,12 +125,12 @@ public class RepairOrderSnapshot {
     }
 
     /**
-     * Gets the proposed repair tasks.
+     * Gets copied proposed repair tasks.
      *
-     * @return A copy of the proposed repair tasks.
+     * @return The copied proposed repair tasks.
      */
-    public List<RepairTask> getRepairTasks() {
-        return new ArrayList<>(repairTasks);
+    public List<RepairTaskData> getRepairTasks() {
+        return repairTasks;
     }
 
     /**
@@ -124,8 +156,20 @@ public class RepairOrderSnapshot {
      *
      * @return The total estimated repair cost.
      */
-    public Amount getTotalCost() {
+    public BigDecimal getTotalCost() {
         return totalCost;
+    }
+
+    private CustomerData createCustomerData(Customer customer) {
+        return new CustomerData(customer.getName(), customer.getPhoneNumber(), customer.getEmail());
+    }
+
+    private BikeData createBikeData(Bike bike) {
+        return new BikeData(bike.getBrand(), bike.getModel(), bike.getSerialNumber(), bike.getWarrantyEndDate());
+    }
+
+    private RepairTaskData createRepairTaskData(RepairTask repairTask) {
+        return new RepairTaskData(repairTask.getDescription(), repairTask.getCost().asBigDecimal());
     }
 
     private String getDiagnosticReportText(RepairOrder repairOrder) {

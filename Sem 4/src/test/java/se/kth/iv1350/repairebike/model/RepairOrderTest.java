@@ -1,5 +1,6 @@
 package se.kth.iv1350.repairebike.model;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class RepairOrderTest {
     private RepairOrder repairOrder;
@@ -215,6 +217,24 @@ class RepairOrderTest {
         assertEquals(1, observer.getUpdatedRepairOrders().size());
         assertEquals("Connector issue.", observer.getUpdatedRepairOrders().get(0).getDiagnosticReportText());
         assertEquals(RepairOrderState.NEWLY_CREATED, observer.getUpdatedRepairOrders().get(0).getState());
+    }
+
+    @Test
+    void observerSnapshotContainsOnlyValueData() {
+        DiagnosticReport diagnosticReport = new DiagnosticReport("Connector issue.");
+        List<RepairTask> tasks = new ArrayList<>();
+        tasks.add(new RepairTask("Replace connector", new Amount(900.0)));
+
+        repairOrder.addDiagnosticReportAndProposedRepairTasks(diagnosticReport, tasks);
+        RepairOrderSnapshot snapshot = new RepairOrderSnapshot(repairOrder, repairOrder.calculateTotalCost());
+
+        assertEquals("Sara Lind", snapshot.getCustomer().name());
+        assertEquals("0701234567", snapshot.getCustomer().phoneNumber());
+        assertEquals("Crescent", snapshot.getBike().brand());
+        assertEquals("Replace connector", snapshot.getRepairTasks().get(0).description());
+        assertEquals(new BigDecimal("900.0"), snapshot.getRepairTasks().get(0).cost());
+        assertEquals(new BigDecimal("900.0"), snapshot.getTotalCost());
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.getRepairTasks().clear());
     }
 
     @Test

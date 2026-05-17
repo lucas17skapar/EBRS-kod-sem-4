@@ -6,7 +6,7 @@ The implementation was developed from the seminar 3 code and the seminar 4 requi
 
 The integration layer throws exceptions that match integration-level problems: `NoSuchCustomerException` and `DatabaseFailureException`. The controller catches these and throws controller-level exceptions: `CustomerNotFoundException` and `OperationFailedException`. This keeps the abstraction level correct, since the view does not need to know how the customer registry is implemented.
 
-The Observer pattern was implemented with `RepairOrder` as the observed object. This is the object whose state changes when diagnostic reports are added, orders are prepared for approval, and orders are accepted or rejected. Observers implement `RepairOrderObserver` and receive a `RepairOrderSnapshot`, which is immutable data copied from the order. This avoids exposing the mutable repair order object to views and loggers.
+The Observer pattern was implemented with `RepairOrder` as the observed object. This is the object whose state changes when diagnostic reports are added, orders are prepared for approval, and orders are accepted or rejected. Observers implement `RepairOrderObserver` and receive a `RepairOrderSnapshot`, which contains immutable value data copied from the order. This avoids exposing the mutable repair order object or its domain object references to views and loggers.
 
 Two additional GoF patterns were implemented. `CustomerRegistry` is a Singleton because the in-memory customer registry represents one shared external data source. Discount calculation uses Strategy: `RepairOrder` delegates discount calculation to a `DiscountStrategy`, and `Main` uses `WarrantyDiscountStrategy`. Warranty is represented explicitly by `Bike.warrantyEndDate`, instead of being inferred from a serial number format.
 
@@ -21,6 +21,10 @@ Money is represented by `Amount`, which stores `BigDecimal`. Repair order DTOs n
 Repair order log entries are formatted separately from user-facing output. The log formatter masks customer name, phone number and email to avoid writing personal data in clear text.
 
 ## Result
+
+Repository:
+
+<https://github.com/lucas17skapar/EBRS-kod-sem-4>
 
 The application still follows the layered structure from the earlier seminars:
 
@@ -37,6 +41,7 @@ Important changed classes:
 * `Controller` maps lower-level exceptions to controller-level exceptions and no longer returns `null` for missing selected customer or missing repair order.
 * `Controller` throws `InvalidRepairOrderStateException` when a repair order operation is not allowed in the current state.
 * `RepairOrder` owns the observer list and notifies observers when its state or contents change.
+* `RepairOrderSnapshot` copies order data into immutable value records before sending updates to observers.
 * `RepairOrderView` prints repair order snapshots to `System.out`.
 * `RepairOrderLogger` writes masked repair order snapshots to `repair-order-log.txt`.
 * `ErrorLogger` writes developer error summaries to `repair-error-log.txt`.
@@ -70,7 +75,9 @@ The exception handling follows the seminar criteria by using checked exceptions 
 
 The Observer implementation is now placed on the observed domain object instead of in the controller. This improves cohesion because `RepairOrder` owns its own state changes and event notification. It also lowers coupling from the controller to observer behavior: the controller only registers observers when creating a repair order.
 
-The data passed to observers is a `RepairOrderSnapshot`, not the mutable `RepairOrder`. This protects encapsulation and gives observers all data needed to print or log the update.
+The observed object is `RepairOrder`, which is appropriate because all relevant repair-order state changes happen there. Observer references are registered in startup/controller code and copied into each new order when the order is created. Later update events are therefore triggered from the model object that changed, instead of being manually coordinated by the controller after every operation.
+
+The data passed to observers is a `RepairOrderSnapshot`, not the mutable `RepairOrder`. The snapshot stores copied value records for customer, bike and repair task data, and stores total cost as `BigDecimal`. This protects encapsulation because observers cannot mutate the repair order and do not receive references to the order's domain objects.
 
 The Singleton use is intentionally small and limited to the simulated customer registry. In a larger application a dependency injection container would be preferable, but for this assignment the Singleton demonstrates the pattern without spreading static access through the code.
 
