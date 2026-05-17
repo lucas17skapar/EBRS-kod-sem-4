@@ -30,6 +30,7 @@ mvn test
 Seminar report:
 
 * [docs/report.md](docs/report.md)
+* [docs/iv1350-seminarium-4-rapport.pdf](docs/iv1350-seminarium-4-rapport.pdf)
 
 Runtime log files are created in `Sem 4/` when the sample program is executed:
 

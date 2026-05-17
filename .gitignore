@@ -10,3 +10,8 @@ target/
 repair-error-log.txt
 repair-order-log.txt
 
+# Local course material and drafts that should not be published in this repo
+dokument/
+tidigare seminarium/
+*.pages
+*.docx
